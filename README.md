@@ -1,29 +1,72 @@
 # FRC Scouting System
 
-A complete, offline-capable scouting system for FIRST Robotics Competition (FRC) teams. This system allows scouts to collect match data on tablets/phones and transfer it via QR codes to a central database.
+A complete, offline-capable scouting system for FIRST Robotics Competition (FRC) teams. This system allows scouts to collect match data on tablets/phones and transfer it via QR codes or web-based scanning to a central database.
 
 ## 🎯 System Overview
 
-### Architecture
-1. **Frontend (The Scouter)**: A Progressive Web App (PWA) using vanilla HTML, CSS, and JavaScript
-2. **Data Transfer**: Match data is encoded into QR codes
-3. **Backend (The Master)**: Python script using OpenCV to scan QR codes and save to SQLite
+### Deployment Options
+
+**Option 1: Docker (Recommended for Homeservers)**
+- **Frontend**: Nginx serving HTML/CSS/JS PWA
+- **Backend**: FastAPI RESTful API
+- **Scanner**: Web-based QR scanner (html5-qrcode)
+- **Dashboard**: Streamlit analytics dashboard
+- See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for details
+
+**Option 2: Local (Original)**
+- **Frontend**: PWA with QR code generation
+- **Backend**: Python/OpenCV desktop scanner
+- **Dashboard**: Streamlit analytics
+- See instructions below
 
 ### Key Features
-- ✅ **100% Offline** - No internet required
+- ✅ **Multiple Deployment Options** - Docker or local
+- ✅ **Web-Based Scanner** - No desktop software needed
+- ✅ **100% Offline** - No internet required (after initial setup)
 - ✅ **Dark Mode UI** - Battery-efficient high-contrast design
 - ✅ **Configurable Fields** - Easy to customize for different seasons
 - ✅ **Local Backup** - Data saved to localStorage
 - ✅ **QR Code Transfer** - Reliable data transmission
 - ✅ **SQLite Database** - Persistent storage with SQL queries
+- ✅ **RESTful API** - Modern web architecture
 
-## 📋 Requirements
+## 🚀 Quick Start
+
+### Docker Deployment (Recommended)
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd scoutification
+
+# Start all services
+docker compose up -d
+
+# Access the system
+# - Scouting App: http://localhost/
+# - QR Scanner: http://localhost/scanner.html
+# - Dashboard: http://localhost:8501
+# - API: http://localhost:8000
+```
+
+📖 **Full Docker documentation:** [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
+
+### Local Deployment (Original)
+
+## 📋 Requirements (Local Deployment)
 
 ### Frontend (Scouting App)
 - Any modern web browser (Chrome, Firefox, Safari, Edge)
 - No installation needed - just open `index.html`
 
-### Backend (Scanner)
+### Backend Scanner Options
+
+**Option A: Web-based (New)**
+- Modern browser with camera support
+- No additional software needed
+- Open `scanner.html` in a browser
+
+**Option B: Desktop Scanner (Original)**
 - Python 3.7 or higher
 - Required Python packages:
   ```bash
@@ -79,24 +122,46 @@ python -m SimpleHTTPServer 8000
 # http://localhost:8000
 ```
 
-### 2. Setup the Backend (Scanner)
+### 2. Setup the Backend
 
-#### Install Dependencies
+#### Option A: Web-Based Scanner (New - No Installation Required)
+
+1. Start a local web server (or use Docker):
+   ```bash
+   python3 -m http.server 8000
+   ```
+
+2. Open `http://localhost:8000/scanner.html` in a browser with a camera
+
+3. Point the camera at QR codes - they'll be automatically scanned and sent to the API
+
+**Note:** For the web scanner to work, you need the FastAPI backend running:
 ```bash
-pip install opencv-python pyzbar numpy pillow
+# Install dependencies
+pip install fastapi uvicorn
+
+# Run the API
+DB_PATH=scouting_data.db python3 api.py
 ```
 
-#### Initialize Database (Optional - auto-created on first run)
-```bash
-sqlite3 scouting_data.db < schema.sql
-```
+#### Option B: Desktop Scanner (Original - OpenCV)
 
-#### Run the Scanner
-```bash
-python3 scanner.py
-```
+1. Install Dependencies
+   ```bash
+   pip install opencv-python pyzbar numpy pillow
+   ```
 
-The scanner will:
+2. Initialize Database (Optional - auto-created on first run)
+   ```bash
+   sqlite3 scouting_data.db < schema.sql
+   ```
+
+3. Run the Scanner
+   ```bash
+   python3 scanner.py
+   ```
+
+The desktop scanner will:
 - Initialize the database
 - Open your webcam
 - Wait for QR codes to scan
@@ -126,6 +191,19 @@ The scanner will:
 4. Data is saved to localStorage as backup
 
 #### Step 3: Scan QR Code
+
+**Web-Based Scanner (Recommended):**
+1. Open `scanner.html` on a device with a camera
+2. Allow camera permissions when prompted
+3. Point the camera at the QR code on the tablet/phone
+4. Scanner automatically:
+   - Detects and decodes QR code
+   - Flashes green on success
+   - Sends data to API
+   - Shows "Success: Match X, Team Y" notification
+   - Resumes scanning immediately
+
+**Desktop Scanner (Original):**
 1. Run `scanner.py` on the master computer
 2. Point the webcam at the QR code on the tablet/phone
 3. Scanner automatically:
@@ -240,17 +318,32 @@ pip install pandas
 
 ```
 scoutification/
-├── index.html               # Main scouting interface
-├── app.js                   # Frontend application logic
-├── config.js                # Field configuration
-├── qrcode.min.js            # QR code generation library
-├── manifest.json            # PWA manifest
-├── scanner.py               # Backend QR scanner
-├── resolve_conflicts.py     # Conflict resolution tool
-├── test_resolve_conflicts.py # Tests for conflict resolver
-├── schema.sql               # Database schema
-├── README.md                # This file
-└── scouting_data.db         # SQLite database (created on first run)
+├── index.html                   # Main scouting interface
+├── pit.html                     # Pit scouting interface
+├── scanner.html                 # Web-based QR scanner (NEW)
+├── app.js                       # Frontend application logic
+├── config.js                    # Field configuration
+├── qrcode.min.js                # QR code generation library
+├── manifest.json                # PWA manifest
+│
+├── api.py                       # FastAPI backend (NEW)
+├── scanner.py                   # Desktop QR scanner (original)
+├── dashboard.py                 # Streamlit analytics dashboard
+├── resolve_conflicts.py         # Conflict resolution tool
+│
+├── docker-compose.yml           # Docker orchestration (NEW)
+├── Dockerfile.backend           # Backend container config (NEW)
+├── Dockerfile.dashboard         # Dashboard container config (NEW)
+├── nginx.conf                   # Nginx web server config (NEW)
+├── requirements-backend.txt     # Backend Python deps (NEW)
+├── requirements-dashboard.txt   # Dashboard Python deps (NEW)
+│
+├── schema.sql                   # Database schema
+├── README.md                    # This file
+├── DOCKER_DEPLOYMENT.md         # Docker deployment guide (NEW)
+│
+├── test_*.py                    # Unit tests
+└── scouting_data.db             # SQLite database (created on first run)
 ```
 
 ## 🔒 Data Backup
