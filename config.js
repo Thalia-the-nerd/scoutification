@@ -5,24 +5,9 @@ const CONFIG = {
   fields: [
     // Basic Match Information
     {
-      id: "match_number",
-      label: "Match Number",
-      type: "number",
-      required: true,
-      category: "match_info"
-    },
-    {
       id: "team_number",
       label: "Team Number",
       type: "number",
-      required: true,
-      category: "match_info"
-    },
-    {
-      id: "alliance",
-      label: "Alliance",
-      type: "dropdown",
-      options: ["Red", "Blue"],
       required: true,
       category: "match_info"
     },
@@ -33,7 +18,7 @@ const CONFIG = {
       required: true,
       category: "match_info"
     },
-    
+
     // Autonomous Period
     {
       id: "auto_balls_scored_upper",
@@ -57,7 +42,7 @@ const CONFIG = {
       type: "checkbox",
       category: "autonomous"
     },
-    
+
     // Teleop Period
     {
       id: "teleop_balls_scored_upper",
@@ -83,7 +68,7 @@ const CONFIG = {
       max: 100,
       category: "teleop"
     },
-    
+
     // Endgame
     {
       id: "climb_level",
@@ -100,7 +85,7 @@ const CONFIG = {
       max: 135,
       category: "endgame"
     },
-    
+
     // Defense and Notes
     {
       id: "defense_rating",
@@ -137,7 +122,7 @@ const CONFIG = {
       category: "notes"
     }
   ],
-  
+
   // Category display names for grouping
   categories: {
     match_info: "Match Information",
