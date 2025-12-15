@@ -16,9 +16,11 @@ import os
 app = FastAPI(title="FRC Scouting API", version="1.0.0")
 
 # CORS middleware to allow requests from the frontend
+# WARNING: In production, replace "*" with specific allowed origins
+# Example: allow_origins=["http://your-server.com", "https://your-server.com"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["*"],  # TODO: Configure for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

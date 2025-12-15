@@ -196,10 +196,28 @@ For external access (from other devices on your network):
 
 ### Security Notes
 
-- By default, the API accepts requests from any origin (CORS: *)
-- For production, update the CORS settings in `api.py`
-- Consider adding authentication for the dashboard
-- Use HTTPS in production environments
+**IMPORTANT: This setup is designed for local/homelab deployment. For production:**
+
+1. **Configure CORS properly** in `api.py`:
+   ```python
+   allow_origins=["http://your-server.com", "https://your-server.com"]
+   ```
+
+2. **Use HTTPS** with SSL/TLS certificates (Let's Encrypt recommended)
+
+3. **Download html5-qrcode locally** instead of using CDN:
+   ```bash
+   wget https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js
+   # Update scanner.html to use local copy
+   ```
+
+4. **Add authentication** for the dashboard (Streamlit supports basic auth)
+
+5. **Firewall rules** - restrict access to trusted networks only
+
+6. **Regular backups** - automate database backups
+
+7. **Update dependencies** - keep Docker images and Python packages current
 
 ### Customization
 
