@@ -1,6 +1,7 @@
 -- FRC Scouting System Database Schema
 -- SQLite database for storing scouting data
 
+-- Match scouting data table
 CREATE TABLE IF NOT EXISTS scouting_data (
     -- Primary key
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,3 +84,25 @@ SELECT
     broke_down,
     timestamp
 FROM scouting_data;
+
+-- Pit scouting data table
+CREATE TABLE IF NOT EXISTS pit_data (
+    -- Primary key
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    
+    -- Team Information
+    team_number INTEGER NOT NULL UNIQUE,
+    robot_weight REAL NOT NULL,
+    drivetrain_type TEXT NOT NULL CHECK(drivetrain_type IN ('Swerve', 'Tank', 'Mecanum')),
+    intake_type TEXT NOT NULL CHECK(intake_type IN ('Over-bumper', 'Through-bumper')),
+    programming_language TEXT NOT NULL CHECK(programming_language IN ('Java', 'C++', 'Python', 'LabVIEW')),
+    
+    -- Robot Photo (BLOB for binary data)
+    robot_thumbnail BLOB,
+    
+    -- Metadata
+    scanned_at TEXT NOT NULL
+);
+
+-- Index for faster team lookup
+CREATE INDEX IF NOT EXISTS idx_pit_team_number ON pit_data(team_number);
