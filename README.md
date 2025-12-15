@@ -180,6 +180,30 @@ const CONFIG = {
 
 ## 📊 Data Analysis
 
+### Interactive Dashboard
+
+A Streamlit-based dashboard is available for advanced data analysis and pick list formulation:
+
+```bash
+# Install additional dependencies
+pip install streamlit pandas
+
+# Run the dashboard
+streamlit run dashboard.py
+```
+
+**Pick List Formulation Features:**
+- 🎯 **Weighted Scoring** - Adjust weights for Auto, Teleop, Climb, and Defense performance
+- 🥇 **Smart Rankings** - Automatically highlights top 8 (Gold) and 9-24 (Silver) teams
+- ✅ **DNP Checkboxes** - Mark teams as "Do Not Pick" interactively
+- 📥 **Export** - Download your filtered pick list as CSV
+
+The dashboard calculates weighted scores using:
+```
+Weighted_Score = (Avg_Auto × Auto_Weight) + (Avg_Teleop × Teleop_Weight) + 
+                 (Climb_Success_Rate × Climb_Weight) + (Defense_Rating × Defense_Weight)
+```
+
 ### Accessing the Database
 
 The data is stored in `scouting_data.db` SQLite file. You can query it using:
