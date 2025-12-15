@@ -35,9 +35,7 @@ def get_db_path():
 class ScoutingData(BaseModel):
     """Model for match scouting data"""
     timestamp: Optional[str] = None
-    match_number: int
     team_number: int
-    alliance: str
     scouter_name: str
     auto_balls_scored_upper: Optional[int] = 0
     auto_balls_scored_lower: Optional[int] = 0
@@ -52,12 +50,6 @@ class ScoutingData(BaseModel):
     penalties: Optional[int] = 0
     broke_down: Optional[bool] = False
     notes: Optional[str] = ""
-
-    @validator('alliance')
-    def validate_alliance(cls, v):
-        if v not in ['Red', 'Blue']:
-            raise ValueError(f"Alliance must be 'Red' or 'Blue', got '{v}'")
-        return v
 
     @validator('climb_level')
     def validate_climb_level(cls, v):
@@ -120,9 +112,7 @@ def init_database():
         CREATE TABLE IF NOT EXISTS scouting_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
-            match_number INTEGER NOT NULL,
             team_number INTEGER NOT NULL,
-            alliance TEXT NOT NULL CHECK(alliance IN ('Red', 'Blue')),
             scouter_name TEXT NOT NULL,
             auto_balls_scored_upper INTEGER DEFAULT 0,
             auto_balls_scored_lower INTEGER DEFAULT 0,
@@ -137,8 +127,7 @@ def init_database():
             penalties INTEGER DEFAULT 0,
             broke_down INTEGER DEFAULT 0 CHECK(broke_down IN (0, 1)),
             notes TEXT,
-            scanned_at TEXT NOT NULL,
-            UNIQUE(match_number, team_number, alliance)
+            scanned_at TEXT NOT NULL
         )
     ''')
     
@@ -210,7 +199,7 @@ async def submit_data(data: dict[str, Any]):
             result = save_match_data(match_data)
             return {
                 "status": "success",
-                "message": f"Match data saved: Match {match_data.match_number}, Team {match_data.team_number}",
+                "message": f"Data saved for Team {match_data.team_number}",
                 "data": result
             }
     
@@ -228,9 +217,7 @@ def save_match_data(data: ScoutingData) -> dict:
     # Prepare record
     record = {
         'timestamp': data.timestamp or scanned_at,
-        'match_number': data.match_number,
         'team_number': data.team_number,
-        'alliance': data.alliance,
         'scouter_name': data.scouter_name,
         'auto_balls_scored_upper': data.auto_balls_scored_upper,
         'auto_balls_scored_lower': data.auto_balls_scored_lower,
@@ -252,16 +239,16 @@ def save_match_data(data: ScoutingData) -> dict:
         conn = sqlite3.connect(get_db_path())
         cursor = conn.cursor()
         
-        # Use INSERT OR REPLACE to handle duplicates
+        # Insert the record
         cursor.execute('''
-            INSERT OR REPLACE INTO scouting_data (
-                timestamp, match_number, team_number, alliance, scouter_name,
+            INSERT INTO scouting_data (
+                timestamp, team_number, scouter_name,
                 auto_balls_scored_upper, auto_balls_scored_lower, auto_taxi,
                 teleop_balls_scored_upper, teleop_balls_scored_lower, teleop_balls_missed,
                 climb_level, climb_time, defense_rating, driver_skill,
                 penalties, broke_down, notes, scanned_at
             ) VALUES (
-                :timestamp, :match_number, :team_number, :alliance, :scouter_name,
+                :timestamp, :team_number, :scouter_name,
                 :auto_balls_scored_upper, :auto_balls_scored_lower, :auto_taxi,
                 :teleop_balls_scored_upper, :teleop_balls_scored_lower, :teleop_balls_missed,
                 :climb_level, :climb_time, :defense_rating, :driver_skill,
@@ -273,9 +260,7 @@ def save_match_data(data: ScoutingData) -> dict:
         conn.close()
         
         return {
-            "match_number": data.match_number,
-            "team_number": data.team_number,
-            "alliance": data.alliance
+            "team_number": data.team_number
         }
     
     except sqlite3.Error as e:
@@ -358,6 +343,53 @@ async def get_stats():
             "match_records": match_count,
             "pit_records": pit_count,
             "unique_teams": unique_teams
+        }
+    
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+
+@app.get("/api/records")
+async def get_records():
+    """Get all scouting records"""
+    try:
+        conn = sqlite3.connect(get_db_path())
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM scouting_data ORDER BY id DESC')
+        columns = [description[0] for description in cursor.description]
+        rows = cursor.fetchall()
+        
+        conn.close()
+        
+        records = [dict(zip(columns, row)) for row in rows]
+        return {"records": records}
+    
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+
+@app.delete("/api/records/{record_id}")
+async def delete_record(record_id: int):
+    """Delete a specific scouting record by ID"""
+    try:
+        conn = sqlite3.connect(get_db_path())
+        cursor = conn.cursor()
+        
+        # Check if record exists
+        cursor.execute('SELECT id FROM scouting_data WHERE id = ?', (record_id,))
+        if cursor.fetchone() is None:
+            conn.close()
+            raise HTTPException(status_code=404, detail=f"Record {record_id} not found")
+        
+        # Delete the record
+        cursor.execute('DELETE FROM scouting_data WHERE id = ?', (record_id,))
+        conn.commit()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": f"Record {record_id} deleted successfully"
         }
     
     except sqlite3.Error as e:

@@ -60,7 +60,7 @@ class ScoutingDashboard:
         """Load raw scouting data from database"""
         try:
             conn = sqlite3.connect(self.db_path)
-            query = "SELECT * FROM scouting_data ORDER BY match_number, team_number"
+            query = "SELECT * FROM scouting_data ORDER BY id DESC"
             df = pd.read_sql_query(query, conn)
             conn.close()
             return df
@@ -69,12 +69,12 @@ class ScoutingDashboard:
             return pd.DataFrame()
     
     def load_team_match_data(self, team_number):
-        """Load match-by-match data for a specific team"""
+        """Load entry-by-entry data for a specific team"""
         try:
             conn = sqlite3.connect(self.db_path)
             query = """
             SELECT 
-                match_number,
+                id,
                 (auto_balls_scored_upper + auto_balls_scored_lower) as auto_score,
                 (teleop_balls_scored_upper + teleop_balls_scored_lower) as teleop_score,
                 CASE 
@@ -83,7 +83,7 @@ class ScoutingDashboard:
                 END as climbed
             FROM scouting_data
             WHERE team_number = ?
-            ORDER BY match_number
+            ORDER BY id
             """
             df = pd.read_sql_query(query, conn, params=[team_number])
             conn.close()
@@ -94,7 +94,7 @@ class ScoutingDashboard:
     
     def pick_list_formulation_tab(self):
         """Pick List Formulation tab implementation"""
-        st.header("🎯 Pick List Formulation")
+        st.header("Pick List Formulation")
         st.markdown("Calculate weighted scores for teams and identify top picks.")
         
         # Load data
@@ -106,7 +106,7 @@ class ScoutingDashboard:
             return
         
         # Sidebar - Weight Sliders
-        st.sidebar.header("⚖️ Weight Configuration")
+        st.sidebar.header("Weight Configuration")
         st.sidebar.markdown("Adjust weights to customize team rankings")
         
         auto_weight = st.sidebar.slider(
@@ -191,7 +191,7 @@ class ScoutingDashboard:
             'Matches_Played': 'Matches'
         })
         
-        st.subheader("📊 Team Rankings")
+        st.subheader("Team Rankings")
         
         # Create interactive table with DNP checkboxes
         for idx, row in display_df.iterrows():
@@ -200,10 +200,10 @@ class ScoutingDashboard:
             
             # Determine highlight color
             if rank <= 8:
-                highlight = "🥇"  # Gold - First Pick
+                highlight = "[1st Pick]"
                 color = "#FFD700"
             elif rank <= 24:
-                highlight = "🥈"  # Silver - Second Pick
+                highlight = "[2nd Pick]"
                 color = "#C0C0C0"
             else:
                 highlight = ""
@@ -260,13 +260,13 @@ class ScoutingDashboard:
         st.markdown("### Legend")
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("🥇 <span style='background-color: #FFD700; padding: 5px; border-radius: 3px;'>**Gold (Top 8)**</span> - First Pick Candidates", unsafe_allow_html=True)
+            st.markdown("<span style='background-color: #FFD700; padding: 5px; border-radius: 3px;'>**Gold (Top 8)**</span> - First Pick Candidates", unsafe_allow_html=True)
         with col2:
-            st.markdown("🥈 <span style='background-color: #C0C0C0; padding: 5px; border-radius: 3px;'>**Silver (9-24)**</span> - Second Pick Candidates", unsafe_allow_html=True)
+            st.markdown("<span style='background-color: #C0C0C0; padding: 5px; border-radius: 3px;'>**Silver (9-24)**</span> - Second Pick Candidates", unsafe_allow_html=True)
         
         # Export filtered pick list
         st.markdown("---")
-        if st.button("📥 Export Pick List (Excluding DNP)"):
+        if st.button("Export Pick List (Excluding DNP)"):
             export_df = display_df[~display_df['Team'].isin(st.session_state.dnp_teams)]
             csv = export_df.to_csv(index=False)
             st.download_button(
@@ -279,7 +279,7 @@ class ScoutingDashboard:
     
     def team_analysis_tab(self):
         """Team Analysis tab implementation"""
-        st.header("📊 Team Analysis")
+        st.header("Team Analysis")
         st.markdown("Analyze individual team performance with detailed metrics and charts.")
         
         # Load data
@@ -291,7 +291,7 @@ class ScoutingDashboard:
             return
         
         # Sidebar - Team Selection
-        st.sidebar.header("🎯 Team Selection")
+        st.sidebar.header("Team Selection")
         team_options = sorted(df['team_number'].tolist())
         
         if not team_options:
@@ -345,30 +345,30 @@ class ScoutingDashboard:
         
         if not match_data.empty:
             # Line Chart - Score Evolution
-            st.subheader("📈 Score Evolution Over Matches")
+            st.subheader("Score Evolution Over Entries")
             
             # Prepare data for chart
-            chart_data = match_data[['match_number', 'auto_score', 'teleop_score']].copy()
+            chart_data = match_data[['id', 'auto_score', 'teleop_score']].copy()
             chart_data['total_score'] = chart_data['auto_score'] + chart_data['teleop_score']
             
             # Create line chart using Altair
             base = alt.Chart(chart_data).encode(
-                x=alt.X('match_number:Q', title='Match Number')
+                x=alt.X('id:Q', title='Entry ID')
             )
             
             auto_line = base.mark_line(color='blue', point=True).encode(
                 y=alt.Y('auto_score:Q', title='Score'),
-                tooltip=['match_number', 'auto_score']
+                tooltip=['id', 'auto_score']
             )
             
             teleop_line = base.mark_line(color='green', point=True).encode(
                 y=alt.Y('teleop_score:Q', title='Score'),
-                tooltip=['match_number', 'teleop_score']
+                tooltip=['id', 'teleop_score']
             )
             
             total_line = base.mark_line(color='red', point=True).encode(
                 y=alt.Y('total_score:Q', title='Score'),
-                tooltip=['match_number', 'total_score']
+                tooltip=['id', 'total_score']
             )
             
             chart = (auto_line + teleop_line + total_line).properties(
@@ -384,17 +384,17 @@ class ScoutingDashboard:
             # Legend
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.markdown("🔵 **Auto Score**")
+                st.markdown("**Auto Score**")
             with col2:
-                st.markdown("🟢 **Teleop Score**")
+                st.markdown("**Teleop Score** (Green)")
             with col3:
-                st.markdown("🔴 **Total Score**")
+                st.markdown("**Total Score** (Red)")
         
         st.markdown("---")
         
         # Heatmap Placeholder - Starting Positions
-        st.subheader("🗺️ Starting Position Analysis")
-        st.info("📍 Starting position data is not currently collected. This feature will be available when position tracking is implemented in the scouting form.")
+        st.subheader("Starting Position Analysis")
+        st.info("Starting position data is not currently collected. This feature will be available when position tracking is implemented in the scouting form.")
         
         # Show a placeholder scatter plot
         st.markdown("**Example Visualization:**")
@@ -420,7 +420,7 @@ class ScoutingDashboard:
     
     def match_predictor_tab(self):
         """Match Predictor tab implementation"""
-        st.header("🔮 Match Predictor")
+        st.header("Match Predictor")
         st.markdown("Predict match outcomes based on team averages.")
         
         # Load data
@@ -443,7 +443,7 @@ class ScoutingDashboard:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🔴 Red Alliance")
+            st.subheader("Red Alliance")
             red_alliance = st.multiselect(
                 "Select 3 teams for Red Alliance",
                 options=team_options,
@@ -453,7 +453,7 @@ class ScoutingDashboard:
             )
         
         with col2:
-            st.subheader("🔵 Blue Alliance")
+            st.subheader("Blue Alliance")
             # Filter out teams already selected for red alliance
             blue_options = [t for t in team_options if t not in red_alliance]
             blue_alliance = st.multiselect(
@@ -485,14 +485,14 @@ class ScoutingDashboard:
             col1, col2 = st.columns(2)
             
             with col1:
-                st.subheader("🔴 Red Alliance Stats")
+                st.subheader("Red Alliance Stats")
                 for team in red_alliance:
                     team_data = df[df['team_number'] == team].iloc[0]
                     st.markdown(f"**Team {team}:** Auto: {team_data['Avg_Auto']:.2f}, Teleop: {team_data['Avg_Teleop']:.2f}")
                 st.markdown(f"**Total Expected Score:** {red_total:.2f}")
             
             with col2:
-                st.subheader("🔵 Blue Alliance Stats")
+                st.subheader("Blue Alliance Stats")
                 for team in blue_alliance:
                     team_data = df[df['team_number'] == team].iloc[0]
                     st.markdown(f"**Team {team}:** Auto: {team_data['Avg_Auto']:.2f}, Teleop: {team_data['Avg_Teleop']:.2f}")
@@ -501,7 +501,7 @@ class ScoutingDashboard:
             st.markdown("---")
             
             # Predicted Winner
-            st.subheader("🏆 Prediction Results")
+            st.subheader("Prediction Results")
             
             total_score = red_total + blue_total
             EQUAL_PROBABILITY = 50.0
@@ -514,15 +514,15 @@ class ScoutingDashboard:
             
             if red_total > blue_total:
                 winner = "Red Alliance"
-                winner_color = "🔴"
+                winner_color = "[RED]"
                 margin = red_total - blue_total
             elif blue_total > red_total:
                 winner = "Blue Alliance"
-                winner_color = "🔵"
+                winner_color = "[BLUE]"
                 margin = blue_total - red_total
             else:
                 winner = "Tie"
-                winner_color = "⚪"
+                winner_color = ""
                 margin = 0
             
             st.markdown(f"### {winner_color} Predicted Winner: **{winner}**")
@@ -532,7 +532,7 @@ class ScoutingDashboard:
             st.markdown("---")
             
             # Win Probability Bar Chart
-            st.subheader("📊 Win Probability")
+            st.subheader("Win Probability")
             
             prob_data = pd.DataFrame({
                 'Alliance': ['Red Alliance', 'Blue Alliance'],
@@ -555,16 +555,16 @@ class ScoutingDashboard:
             # Display probabilities as metrics
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("🔴 Red Win Probability", f"{red_probability:.1f}%")
+                st.metric("Red Win Probability", f"{red_probability:.1f}%")
             with col2:
-                st.metric("🔵 Blue Win Probability", f"{blue_probability:.1f}%")
+                st.metric("Blue Win Probability", f"{blue_probability:.1f}%")
         
         elif len(red_alliance) > 0 or len(blue_alliance) > 0:
             st.info("Please select exactly 3 teams for both alliances to see predictions.")
     
     def raw_data_tab(self):
         """Raw Data tab implementation"""
-        st.header("📄 Raw Data")
+        st.header("Raw Data")
         st.markdown("View and download all scouting data from the database.")
         
         # Load raw data
@@ -576,20 +576,18 @@ class ScoutingDashboard:
             return
         
         # Display metrics
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         with col1:
             st.metric("Total Records", len(df))
         with col2:
             st.metric("Total Teams", df['team_number'].nunique())
-        with col3:
-            st.metric("Total Matches", df['match_number'].nunique())
         
         st.markdown("---")
         
         # Download CSV button
         csv = df.to_csv(index=False)
         st.download_button(
-            label="📥 Download CSV",
+            label="Download CSV",
             data=csv,
             file_name="scouting_data_export.csv",
             mime="text/csv",
@@ -599,7 +597,7 @@ class ScoutingDashboard:
         st.markdown("---")
         
         # Display dataframe
-        st.subheader("📊 Sortable Data Table")
+        st.subheader("Sortable Data Table")
         st.markdown("Click on column headers to sort the data.")
         
         # Use st.dataframe for interactive sorting
@@ -610,9 +608,7 @@ class ScoutingDashboard:
             column_config={
                 "id": st.column_config.NumberColumn("ID", help="Database record ID"),
                 "timestamp": st.column_config.TextColumn("Timestamp"),
-                "match_number": st.column_config.NumberColumn("Match #"),
                 "team_number": st.column_config.NumberColumn("Team #"),
-                "alliance": st.column_config.TextColumn("Alliance"),
                 "scouter_name": st.column_config.TextColumn("Scouter"),
                 "auto_balls_scored_upper": st.column_config.NumberColumn("Auto Upper"),
                 "auto_balls_scored_lower": st.column_config.NumberColumn("Auto Lower"),
@@ -630,27 +626,129 @@ class ScoutingDashboard:
                 "scanned_at": st.column_config.TextColumn("Scanned At")
             }
         )
+    
+    def manage_records_tab(self):
+        """Manage Records tab implementation - Delete scouting records"""
+        st.header("Manage Records")
+        st.markdown("View and delete scouting records from the database.")
+        
+        # Load raw data
+        df = self.load_raw_data()
+        
+        if df.empty:
+            st.warning("No scouting data available.")
+            return
+        
+        # Display metrics
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Total Records", len(df))
+        with col2:
+            st.metric("Total Teams", df['team_number'].nunique())
+        
+        st.markdown("---")
+        
+        # Filter options
+        st.subheader("Filter Records")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Team filter
+            team_options = ['All'] + sorted(df['team_number'].unique().tolist())
+            selected_team = st.selectbox(
+                "Filter by Team",
+                options=team_options,
+                help="Select a team to filter records"
+            )
+        
+        with col2:
+            # Scouter filter
+            scouter_options = ['All'] + sorted(df['scouter_name'].unique().tolist())
+            selected_scouter = st.selectbox(
+                "Filter by Scouter",
+                options=scouter_options,
+                help="Select a scouter to filter records"
+            )
+        
+        # Apply filters
+        filtered_df = df.copy()
+        if selected_team != 'All':
+            filtered_df = filtered_df[filtered_df['team_number'] == selected_team]
+        if selected_scouter != 'All':
+            filtered_df = filtered_df[filtered_df['scouter_name'] == selected_scouter]
+        
+        st.markdown(f"**Showing {len(filtered_df)} of {len(df)} records**")
+        st.markdown("---")
+        
+        # Display records with delete buttons
+        st.subheader("Records")
+        
+        if filtered_df.empty:
+            st.info("No records match the selected filters.")
+        else:
+            for idx, row in filtered_df.iterrows():
+                col1, col2, col3 = st.columns([0.8, 3, 0.5])
+                
+                with col1:
+                    st.markdown(f"**ID: {row['id']}**")
+                
+                with col2:
+                    timestamp = pd.to_datetime(row['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+                    auto_total = row['auto_balls_scored_upper'] + row['auto_balls_scored_lower']
+                    teleop_total = row['teleop_balls_scored_upper'] + row['teleop_balls_scored_lower']
+                    
+                    st.markdown(
+                        f"Team **{row['team_number']}** | "
+                        f"Scouter: {row['scouter_name']} | "
+                        f"Auto: {auto_total} | Teleop: {teleop_total} | "
+                        f"Climb: {row['climb_level']} | "
+                        f"{timestamp}"
+                    )
+                
+                with col3:
+                    if st.button("Delete", key=f"delete_{row['id']}"):
+                        if self.delete_record(row['id']):
+                            st.success(f"Record {row['id']} deleted!")
+                            st.rerun()
+                        else:
+                            st.error(f"Failed to delete record {row['id']}")
+                
+                st.markdown("---")
+    
+    def delete_record(self, record_id):
+        """Delete a record from the database"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM scouting_data WHERE id = ?', (record_id,))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            st.error(f"Error deleting record: {e}")
+            return False
 
 
 def main():
     """Main entry point for Streamlit dashboard"""
     st.set_page_config(
         page_title="FRC Scouting Dashboard",
-        page_icon="🤖",
+        page_icon="FRC",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    st.title("🤖 FRC Scouting Dashboard")
+    st.title("FRC Scouting Dashboard")
     
     dashboard = ScoutingDashboard()
     
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "Pick List Formulation",
         "Team Analysis",
         "Match Predictor",
-        "Raw Data"
+        "Raw Data",
+        "Manage Records"
     ])
     
     with tab1:
@@ -664,6 +762,9 @@ def main():
     
     with tab4:
         dashboard.raw_data_tab()
+    
+    with tab5:
+        dashboard.manage_records_tab()
 
 
 if __name__ == '__main__':

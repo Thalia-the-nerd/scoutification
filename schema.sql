@@ -9,10 +9,8 @@ CREATE TABLE IF NOT EXISTS scouting_data (
     -- Timestamp from the form submission
     timestamp TEXT NOT NULL,
     
-    -- Match Information
-    match_number INTEGER NOT NULL,
+    -- Team Information
     team_number INTEGER NOT NULL,
-    alliance TEXT NOT NULL CHECK(alliance IN ('Red', 'Blue')),
     scouter_name TEXT NOT NULL,
     
     -- Autonomous Period
@@ -39,24 +37,17 @@ CREATE TABLE IF NOT EXISTS scouting_data (
     notes TEXT,
     
     -- Metadata
-    scanned_at TEXT NOT NULL,
-    
-    -- Unique constraint to prevent duplicate entries for same match/team/alliance
-    UNIQUE(match_number, team_number, alliance)
+    scanned_at TEXT NOT NULL
 );
 
 -- Indexes for faster queries
-CREATE INDEX IF NOT EXISTS idx_match_number ON scouting_data(match_number);
 CREATE INDEX IF NOT EXISTS idx_team_number ON scouting_data(team_number);
-CREATE INDEX IF NOT EXISTS idx_alliance ON scouting_data(alliance);
 CREATE INDEX IF NOT EXISTS idx_scanned_at ON scouting_data(scanned_at);
 
 -- View for easy data analysis
 CREATE VIEW IF NOT EXISTS scouting_summary AS
 SELECT 
-    match_number,
     team_number,
-    alliance,
     scouter_name,
     -- Auto performance
     (auto_balls_scored_upper + auto_balls_scored_lower) as auto_total_balls,

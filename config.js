@@ -3,20 +3,20 @@
 
 const CONFIG = {
   fields: [
-    // Basic Match Information
+    // Basic Team Information
     {
       id: "team_number",
       label: "Team Number",
       type: "number",
       required: true,
-      category: "match_info"
+      category: "team_info"
     },
     {
       id: "scouter_name",
       label: "Scouter Name",
       type: "text",
       required: true,
-      category: "match_info"
+      category: "team_info"
     },
 
     // Autonomous Period
@@ -125,7 +125,7 @@ const CONFIG = {
 
   // Category display names for grouping
   categories: {
-    match_info: "Match Information",
+    team_info: "Team Information",
     autonomous: "Autonomous Period",
     teleop: "Teleoperated Period",
     endgame: "Endgame",
