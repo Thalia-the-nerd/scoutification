@@ -45,20 +45,21 @@ class ConflictResolver:
             return False
     
     def find_duplicates(self):
-        """Find rows where Match Number and Team Number are identical"""
+        """Find rows where Match Number, Team Number, and Alliance are identical"""
         if self.df is None:
             print("✗ No data loaded. Call load_database() first.")
             return None
         
-        # Group by match_number and team_number to find duplicates
-        duplicates = self.df[self.df.duplicated(subset=['match_number', 'team_number'], keep=False)]
+        # Group by match_number, team_number, and alliance to find duplicates
+        # This matches the database UNIQUE constraint
+        duplicates = self.df[self.df.duplicated(subset=['match_number', 'team_number', 'alliance'], keep=False)]
         
         if len(duplicates) == 0:
             print("✓ No duplicate entries found!")
             return None
         
-        # Sort by match_number and team_number for organized display
-        duplicates = duplicates.sort_values(['match_number', 'team_number', 'id'])
+        # Sort by match_number, team_number, and alliance for organized display
+        duplicates = duplicates.sort_values(['match_number', 'team_number', 'alliance', 'id'])
         
         print(f"✓ Found {len(duplicates)} conflicting records")
         return duplicates
@@ -66,7 +67,7 @@ class ConflictResolver:
     def display_conflict(self, row1, row2):
         """Display two conflicting records side-by-side"""
         print("\n" + "="*80)
-        print(f"CONFLICT: Match {row1['match_number']}, Team {row2['team_number']}")
+        print(f"CONFLICT: Match {row1['match_number']}, Team {row1['team_number']}")
         print("="*80)
         
         # Get all columns except id
@@ -99,6 +100,9 @@ class ConflictResolver:
         """Calculate average of numeric fields and merge string fields"""
         merged_record = {}
         
+        # Binary fields that should be rounded to 0 or 1
+        binary_fields = {'auto_taxi', 'broke_down'}
+        
         for col in row1.index:
             if col == 'id':
                 # Keep the first ID
@@ -112,7 +116,13 @@ class ConflictResolver:
                 try:
                     val1 = float(val1)
                     val2 = float(val2)
-                    merged_record[col] = (val1 + val2) / 2
+                    average = (val1 + val2) / 2
+                    
+                    # Round binary fields to 0 or 1
+                    if col in binary_fields:
+                        merged_record[col] = round(average)
+                    else:
+                        merged_record[col] = average
                 except (ValueError, TypeError):
                     merged_record[col] = val1  # Fallback to first value
             else:
@@ -182,13 +192,13 @@ class ConflictResolver:
             # No duplicates found
             return True
         
-        # Group duplicates by match_number and team_number
-        grouped = duplicates.groupby(['match_number', 'team_number'])
+        # Group duplicates by match_number, team_number, and alliance
+        grouped = duplicates.groupby(['match_number', 'team_number', 'alliance'])
         
         total_groups = len(grouped)
         current_group = 0
         
-        for (match_num, team_num), group in grouped:
+        for (match_num, team_num, alliance), group in grouped:
             current_group += 1
             print(f"\n\nProcessing conflict {current_group} of {total_groups}")
             

@@ -4,7 +4,6 @@ Test script for the FRC Scouting Conflict Resolver
 Tests conflict resolution functionality
 """
 
-import json
 import sys
 import os
 import sqlite3
@@ -138,7 +137,7 @@ def test_find_duplicates():
     assert len(duplicates) == 5, f"Expected 5 duplicate records, got {len(duplicates)}"
     
     # Check that we have the right duplicates
-    duplicate_groups = duplicates.groupby(['match_number', 'team_number'])
+    duplicate_groups = duplicates.groupby(['match_number', 'team_number', 'alliance'])
     assert len(duplicate_groups) == 2, f"Expected 2 duplicate groups, got {len(duplicate_groups)}"
     
     resolver.close()
