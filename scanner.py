@@ -34,7 +34,7 @@ class ScoutingScanner:
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
         
-        # Create table if it doesn't exist
+        # Create match scouting table if it doesn't exist
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS scouting_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,6 +60,21 @@ class ScoutingScanner:
                 UNIQUE(match_number, team_number, alliance)
             )
         ''')
+        
+        # Create pit scouting table if it doesn't exist
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS pit_data (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                team_number INTEGER NOT NULL UNIQUE,
+                robot_weight REAL NOT NULL,
+                drivetrain_type TEXT NOT NULL CHECK(drivetrain_type IN ('Swerve', 'Tank', 'Mecanum')),
+                intake_type TEXT NOT NULL CHECK(intake_type IN ('Over-bumper', 'Through-bumper')),
+                programming_language TEXT NOT NULL CHECK(programming_language IN ('Java', 'C++', 'Python', 'LabVIEW')),
+                robot_thumbnail BLOB,
+                scanned_at TEXT NOT NULL
+            )
+        ''')
+        
         self.conn.commit()
         print(f"✓ Database initialized: {self.db_path}")
         
@@ -134,26 +149,113 @@ class ScoutingScanner:
         except sqlite3.Error as e:
             return False, f"Database error: {e}"
     
+    def validate_pit_data(self, data):
+        """Validate that the pit scouting data has the expected structure"""
+        if not isinstance(data, dict):
+            return False, "Data is not a dictionary"
+        
+        # Check for required abbreviated fields from pit.html
+        # t=team, w=weight, d=drivetrain, i=intake, p=programming
+        required_fields = {'t', 'w', 'd', 'i', 'p'}
+        missing_fields = required_fields - set(data.keys())
+        if missing_fields:
+            return False, f"Missing required pit fields: {missing_fields}"
+        
+        # Validate data types
+        try:
+            int(data.get('t', 0))
+            float(data.get('w', 0))
+            if data.get('d') not in ['Swerve', 'Tank', 'Mecanum']:
+                return False, f"Invalid drivetrain type: {data.get('d')}"
+            if data.get('i') not in ['Over-bumper', 'Through-bumper']:
+                return False, f"Invalid intake type: {data.get('i')}"
+            if data.get('p') not in ['Java', 'C++', 'Python', 'LabVIEW']:
+                return False, f"Invalid programming language: {data.get('p')}"
+        except (ValueError, TypeError) as e:
+            return False, f"Invalid data types: {e}"
+        
+        return True, "Valid"
+    
+    def save_pit_data_to_database(self, data):
+        """Save or update pit scouting data in the database"""
+        import base64
+        
+        scanned_at = datetime.now().isoformat()
+        
+        # Decode Base64 image if present
+        thumbnail_blob = None
+        if 'img' in data:
+            try:
+                thumbnail_blob = base64.b64decode(data['img'])
+            except Exception as e:
+                print(f"Warning: Failed to decode image: {e}")
+        
+        # Prepare data with abbreviated keys from pit.html
+        record = {
+            'team_number': int(data.get('t', 0)),
+            'robot_weight': float(data.get('w', 0)),
+            'drivetrain_type': data.get('d', ''),
+            'intake_type': data.get('i', ''),
+            'programming_language': data.get('p', ''),
+            'robot_thumbnail': thumbnail_blob,
+            'scanned_at': scanned_at
+        }
+        
+        try:
+            # Use INSERT OR REPLACE to handle duplicates
+            self.cursor.execute('''
+                INSERT OR REPLACE INTO pit_data (
+                    team_number, robot_weight, drivetrain_type, intake_type,
+                    programming_language, robot_thumbnail, scanned_at
+                ) VALUES (
+                    :team_number, :robot_weight, :drivetrain_type, :intake_type,
+                    :programming_language, :robot_thumbnail, :scanned_at
+                )
+            ''', record)
+            self.conn.commit()
+            return True, "Pit data saved successfully"
+        except sqlite3.Error as e:
+            return False, f"Database error: {e}"
+    
     def process_qr_code(self, qr_data):
         """Process a decoded QR code"""
         try:
             # Parse JSON data
             data = json.loads(qr_data)
             
-            # Validate data
-            is_valid, message = self.validate_data(data)
-            if not is_valid:
-                print(f"✗ Validation failed: {message}")
-                return False
+            # Check if this is pit data (contains 'img' key or abbreviated pit keys)
+            is_pit_data = 'img' in data or ('t' in data and 'w' in data and 'd' in data)
             
-            # Save to database
-            success, message = self.save_to_database(data)
-            if success:
-                print(f"✓ Saved: Match {data['match_number']}, Team {data['team_number']}, {data['alliance']}")
-                return True
+            if is_pit_data:
+                # Process as pit data
+                is_valid, message = self.validate_pit_data(data)
+                if not is_valid:
+                    print(f"✗ Pit data validation failed: {message}")
+                    return False
+                
+                # Save to pit_data table
+                success, message = self.save_pit_data_to_database(data)
+                if success:
+                    print(f"✓ Saved Pit Data: Team {data.get('t', 'N/A')}")
+                    return True
+                else:
+                    print(f"✗ Pit data save failed: {message}")
+                    return False
             else:
-                print(f"✗ Save failed: {message}")
-                return False
+                # Process as match data
+                is_valid, message = self.validate_data(data)
+                if not is_valid:
+                    print(f"✗ Validation failed: {message}")
+                    return False
+                
+                # Save to database
+                success, message = self.save_to_database(data)
+                if success:
+                    print(f"✓ Saved: Match {data['match_number']}, Team {data['team_number']}, {data['alliance']}")
+                    return True
+                else:
+                    print(f"✗ Save failed: {message}")
+                    return False
                 
         except json.JSONDecodeError as e:
             print(f"✗ Invalid JSON: {e}")
@@ -281,10 +383,10 @@ class ScoutingScanner:
         print("DATABASE STATISTICS")
         print("="*60)
         
-        # Total records
+        # Total match records
         self.cursor.execute('SELECT COUNT(*) FROM scouting_data')
         total = self.cursor.fetchone()[0]
-        print(f"Total Records: {total}")
+        print(f"Total Match Records: {total}")
         
         # Records by alliance
         self.cursor.execute('''
@@ -303,9 +405,25 @@ class ScoutingScanner:
             ORDER BY scanned_at DESC
             LIMIT 5
         ''')
-        print("\nRecent Entries:")
+        print("\nRecent Match Entries:")
         for match, team, alliance, scouter in self.cursor.fetchall():
             print(f"  Match {match} | Team {team} | {alliance} | by {scouter}")
+        
+        # Pit data statistics
+        self.cursor.execute('SELECT COUNT(*) FROM pit_data')
+        pit_total = self.cursor.fetchone()[0]
+        print(f"\nTotal Pit Records: {pit_total}")
+        
+        # Recent pit entries
+        self.cursor.execute('''
+            SELECT team_number, drivetrain_type, programming_language
+            FROM pit_data
+            ORDER BY scanned_at DESC
+            LIMIT 5
+        ''')
+        print("\nRecent Pit Entries:")
+        for team, drivetrain, lang in self.cursor.fetchall():
+            print(f"  Team {team} | {drivetrain} | {lang}")
         
         print("="*60 + "\n")
 
