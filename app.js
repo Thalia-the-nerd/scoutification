@@ -297,15 +297,28 @@ class ScoutingApp {
         const qrcodeContainer = document.getElementById('qrcode');
         qrcodeContainer.innerHTML = '';
         
+        // Create SVG element for QR code
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '256');
+        svg.setAttribute('height', '256');
+        qrcodeContainer.appendChild(svg);
+        
         // Generate new QR code
-        new QRCode(qrcodeContainer, {
-            text: jsonString,
-            width: 256,
-            height: 256,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
-        });
+        try {
+            new QRCode(svg, {
+                text: jsonString,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M,
+                useSVG: true
+            });
+        } catch (e) {
+            console.error('QR Code generation error:', e);
+            this.showStatus('Error generating QR code: ' + e.message, 'error');
+            return;
+        }
         
         // Update display info
         document.getElementById('qr-match-num').textContent = data.match_number || 'N/A';
