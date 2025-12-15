@@ -214,19 +214,43 @@ While the scanner is running:
 - Press `s` to show statistics
 - Press `q` to quit
 
+### Resolving Duplicate Entries
+
+If the same match data gets scanned multiple times, you can resolve conflicts using the conflict resolution tool:
+
+```bash
+python3 resolve_conflicts.py
+```
+
+This tool will:
+1. Load the database and identify duplicate entries (same match number, team number, and alliance)
+2. Display conflicting records side-by-side with differences highlighted
+3. Prompt you to choose how to resolve each conflict:
+   - **Keep (1)**: Keep the first record, delete the second
+   - **Keep (2)**: Keep the second record, delete the first
+   - **Average (A)**: Calculate the mean of all numeric fields and merge string fields
+4. Update the database with your chosen resolution
+
+**Note:** The tool requires pandas. Install it with:
+```bash
+pip install pandas
+```
+
 ## 🗂️ File Structure
 
 ```
 scoutification/
-├── index.html          # Main scouting interface
-├── app.js              # Frontend application logic
-├── config.js           # Field configuration
-├── qrcode.min.js       # QR code generation library
-├── manifest.json       # PWA manifest
-├── scanner.py          # Backend QR scanner
-├── schema.sql          # Database schema
-├── README.md           # This file
-└── scouting_data.db    # SQLite database (created on first run)
+├── index.html               # Main scouting interface
+├── app.js                   # Frontend application logic
+├── config.js                # Field configuration
+├── qrcode.min.js            # QR code generation library
+├── manifest.json            # PWA manifest
+├── scanner.py               # Backend QR scanner
+├── resolve_conflicts.py     # Conflict resolution tool
+├── test_resolve_conflicts.py # Tests for conflict resolver
+├── schema.sql               # Database schema
+├── README.md                # This file
+└── scouting_data.db         # SQLite database (created on first run)
 ```
 
 ## 🔒 Data Backup
