@@ -103,7 +103,7 @@ class ScoutingScanner:
             'teleop_balls_scored_lower': int(data.get('teleop_balls_scored_lower', 0)),
             'teleop_balls_missed': int(data.get('teleop_balls_missed', 0)),
             'climb_level': data.get('climb_level', ''),
-            'climb_time': int(data.get('climb_time', 0)) if data.get('climb_time') else 0,
+            'climb_time': int(data.get('climb_time') or 0),
             'defense_rating': data.get('defense_rating', ''),
             'driver_skill': data.get('driver_skill', ''),
             'penalties': int(data.get('penalties', 0)),
@@ -183,10 +183,12 @@ class ScoutingScanner:
             
             # Draw the data on the frame
             x, y, w, h = obj.rect
+            # Ensure text is visible by avoiding negative coordinates
+            text_y = max(y - 10, 15)
             cv2.putText(
                 frame,
                 "QR Code Detected",
-                (x, y - 10),
+                (x, text_y),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
                 (0, 255, 0),

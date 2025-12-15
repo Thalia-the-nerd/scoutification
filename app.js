@@ -311,7 +311,7 @@ class ScoutingApp {
                 height: 256,
                 colorDark: '#000000',
                 colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M,
+                correctLevel: QRCode.CorrectLevel.H,  // High error correction for reliability
                 useSVG: true
             });
         } catch (e) {
