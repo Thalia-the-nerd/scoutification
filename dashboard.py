@@ -8,6 +8,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import numpy as np
+import altair as alt
 
 
 class ScoutingDashboard:
@@ -51,6 +52,42 @@ class ScoutingDashboard:
             return df
         except Exception as e:
             st.error(f"Error loading data: {e}")
+            return pd.DataFrame()
+    
+    def load_raw_data(self):
+        """Load raw scouting data from database"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            query = "SELECT * FROM scouting_data ORDER BY match_number, team_number"
+            df = pd.read_sql_query(query, conn)
+            conn.close()
+            return df
+        except Exception as e:
+            st.error(f"Error loading raw data: {e}")
+            return pd.DataFrame()
+    
+    def load_team_match_data(self, team_number):
+        """Load match-by-match data for a specific team"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            query = """
+            SELECT 
+                match_number,
+                (auto_balls_scored_upper + auto_balls_scored_lower) as auto_score,
+                (teleop_balls_scored_upper + teleop_balls_scored_lower) as teleop_score,
+                CASE 
+                    WHEN climb_level IN ('Traversal', 'High', 'Mid', 'Low') THEN 1
+                    ELSE 0
+                END as climbed
+            FROM scouting_data
+            WHERE team_number = ?
+            ORDER BY match_number
+            """
+            df = pd.read_sql_query(query, conn, params=[team_number])
+            conn.close()
+            return df
+        except Exception as e:
+            st.error(f"Error loading team data: {e}")
             return pd.DataFrame()
     
     def pick_list_formulation_tab(self):
@@ -237,6 +274,360 @@ class ScoutingDashboard:
                 mime="text/csv"
             )
             st.success("Pick list ready for download!")
+    
+    def team_analysis_tab(self):
+        """Team Analysis tab implementation"""
+        st.header("📊 Team Analysis")
+        st.markdown("Analyze individual team performance with detailed metrics and charts.")
+        
+        # Load data
+        df = self.load_data()
+        
+        if df.empty:
+            st.warning("No scouting data available. Please scan some QR codes first!")
+            st.info("To get started, run `python3 scanner.py` and scan some scouting data QR codes.")
+            return
+        
+        # Sidebar - Team Selection
+        st.sidebar.header("🎯 Team Selection")
+        team_options = sorted(df['team_number'].tolist())
+        
+        if not team_options:
+            st.warning("No teams available in the database.")
+            return
+        
+        selected_team = st.sidebar.selectbox(
+            "Select Team Number",
+            options=team_options,
+            help="Choose a team to analyze their performance"
+        )
+        
+        # Get team stats
+        team_stats = df[df['team_number'] == selected_team].iloc[0]
+        
+        # Display team header
+        st.subheader(f"Team {selected_team}")
+        st.markdown(f"**Matches Played:** {team_stats['Matches_Played']}")
+        
+        st.markdown("---")
+        
+        # Metric Cards
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(
+                label="Avg Auto Score",
+                value=f"{team_stats['Avg_Auto']:.2f}",
+                help="Average autonomous period score"
+            )
+        
+        with col2:
+            st.metric(
+                label="Avg Teleop Score",
+                value=f"{team_stats['Avg_Teleop']:.2f}",
+                help="Average teleoperated period score"
+            )
+        
+        with col3:
+            climb_pct = team_stats['Climb_Success_Rate'] * 100
+            st.metric(
+                label="Climb %",
+                value=f"{climb_pct:.0f}%",
+                help="Climb success rate percentage"
+            )
+        
+        st.markdown("---")
+        
+        # Load match-by-match data for this team
+        match_data = self.load_team_match_data(selected_team)
+        
+        if not match_data.empty:
+            # Line Chart - Score Evolution
+            st.subheader("📈 Score Evolution Over Matches")
+            
+            # Prepare data for chart
+            chart_data = match_data[['match_number', 'auto_score', 'teleop_score']].copy()
+            chart_data['total_score'] = chart_data['auto_score'] + chart_data['teleop_score']
+            
+            # Create line chart using Altair
+            base = alt.Chart(chart_data).encode(
+                x=alt.X('match_number:Q', title='Match Number')
+            )
+            
+            auto_line = base.mark_line(color='blue', point=True).encode(
+                y=alt.Y('auto_score:Q', title='Score'),
+                tooltip=['match_number', 'auto_score']
+            )
+            
+            teleop_line = base.mark_line(color='green', point=True).encode(
+                y=alt.Y('teleop_score:Q', title='Score'),
+                tooltip=['match_number', 'teleop_score']
+            )
+            
+            total_line = base.mark_line(color='red', point=True).encode(
+                y=alt.Y('total_score:Q', title='Score'),
+                tooltip=['match_number', 'total_score']
+            )
+            
+            chart = (auto_line + teleop_line + total_line).properties(
+                width=700,
+                height=400
+            ).configure_axis(
+                labelFontSize=12,
+                titleFontSize=14
+            )
+            
+            st.altair_chart(chart, use_container_width=True)
+            
+            # Legend
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("🔵 **Auto Score**")
+            with col2:
+                st.markdown("🟢 **Teleop Score**")
+            with col3:
+                st.markdown("🔴 **Total Score**")
+        
+        st.markdown("---")
+        
+        # Heatmap Placeholder - Starting Positions
+        st.subheader("🗺️ Starting Position Analysis")
+        st.info("📍 Starting position data is not currently collected. This feature will be available when position tracking is implemented in the scouting form.")
+        
+        # Show a placeholder scatter plot
+        st.markdown("**Example Visualization:**")
+        placeholder_data = pd.DataFrame({
+            'x': [0, 1, 2, 0, 1, 2],
+            'y': [0, 0, 0, 1, 1, 1],
+            'frequency': [3, 5, 2, 1, 4, 2]
+        })
+        
+        scatter = alt.Chart(placeholder_data).mark_circle(size=200).encode(
+            x=alt.X('x:Q', scale=alt.Scale(domain=[-0.5, 2.5]), title='Field X Position'),
+            y=alt.Y('y:Q', scale=alt.Scale(domain=[-0.5, 1.5]), title='Field Y Position'),
+            size=alt.Size('frequency:Q', title='Frequency', scale=alt.Scale(range=[100, 1000])),
+            color=alt.Color('frequency:Q', scale=alt.Scale(scheme='blues')),
+            tooltip=['x', 'y', 'frequency']
+        ).properties(
+            width=500,
+            height=300,
+            title='Starting Position Heatmap (Placeholder)'
+        )
+        
+        st.altair_chart(scatter, use_container_width=True)
+    
+    def match_predictor_tab(self):
+        """Match Predictor tab implementation"""
+        st.header("🔮 Match Predictor")
+        st.markdown("Predict match outcomes based on team averages.")
+        
+        # Load data
+        df = self.load_data()
+        
+        if df.empty:
+            st.warning("No scouting data available. Please scan some QR codes first!")
+            st.info("To get started, run `python3 scanner.py` and scan some scouting data QR codes.")
+            return
+        
+        team_options = sorted(df['team_number'].tolist())
+        
+        if len(team_options) < 6:
+            st.warning(f"Need at least 6 teams to predict a match. Currently have {len(team_options)} teams.")
+            return
+        
+        st.markdown("---")
+        
+        # Alliance Selection
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🔴 Red Alliance")
+            red_alliance = st.multiselect(
+                "Select 3 teams for Red Alliance",
+                options=team_options,
+                max_selections=3,
+                key="red_alliance",
+                help="Select exactly 3 teams for the red alliance"
+            )
+        
+        with col2:
+            st.subheader("🔵 Blue Alliance")
+            # Filter out teams already selected for red alliance
+            blue_options = [t for t in team_options if t not in red_alliance]
+            blue_alliance = st.multiselect(
+                "Select 3 teams for Blue Alliance",
+                options=blue_options,
+                max_selections=3,
+                key="blue_alliance",
+                help="Select exactly 3 teams for the blue alliance"
+            )
+        
+        # Only proceed if both alliances have exactly 3 teams
+        if len(red_alliance) == 3 and len(blue_alliance) == 3:
+            st.markdown("---")
+            
+            # Calculate alliance scores
+            red_stats = df[df['team_number'].isin(red_alliance)]
+            blue_stats = df[df['team_number'].isin(blue_alliance)]
+            
+            # Sum of averages
+            red_auto = red_stats['Avg_Auto'].sum()
+            red_teleop = red_stats['Avg_Teleop'].sum()
+            red_total = red_auto + red_teleop
+            
+            blue_auto = blue_stats['Avg_Auto'].sum()
+            blue_teleop = blue_stats['Avg_Teleop'].sum()
+            blue_total = blue_auto + blue_teleop
+            
+            # Display team breakdowns
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("🔴 Red Alliance Stats")
+                for team in red_alliance:
+                    team_data = df[df['team_number'] == team].iloc[0]
+                    st.markdown(f"**Team {team}:** Auto: {team_data['Avg_Auto']:.2f}, Teleop: {team_data['Avg_Teleop']:.2f}")
+                st.markdown(f"**Total Expected Score:** {red_total:.2f}")
+            
+            with col2:
+                st.subheader("🔵 Blue Alliance Stats")
+                for team in blue_alliance:
+                    team_data = df[df['team_number'] == team].iloc[0]
+                    st.markdown(f"**Team {team}:** Auto: {team_data['Avg_Auto']:.2f}, Teleop: {team_data['Avg_Teleop']:.2f}")
+                st.markdown(f"**Total Expected Score:** {blue_total:.2f}")
+            
+            st.markdown("---")
+            
+            # Predicted Winner
+            st.subheader("🏆 Prediction Results")
+            
+            total_score = red_total + blue_total
+            EQUAL_PROBABILITY = 50.0
+            if total_score > 0:
+                red_probability = (red_total / total_score) * 100
+                blue_probability = (blue_total / total_score) * 100
+            else:
+                red_probability = EQUAL_PROBABILITY
+                blue_probability = EQUAL_PROBABILITY
+            
+            if red_total > blue_total:
+                winner = "Red Alliance"
+                winner_color = "🔴"
+                margin = red_total - blue_total
+            elif blue_total > red_total:
+                winner = "Blue Alliance"
+                winner_color = "🔵"
+                margin = blue_total - red_total
+            else:
+                winner = "Tie"
+                winner_color = "⚪"
+                margin = 0
+            
+            st.markdown(f"### {winner_color} Predicted Winner: **{winner}**")
+            if margin > 0:
+                st.markdown(f"Expected margin: **{margin:.2f} points**")
+            
+            st.markdown("---")
+            
+            # Win Probability Bar Chart
+            st.subheader("📊 Win Probability")
+            
+            prob_data = pd.DataFrame({
+                'Alliance': ['Red Alliance', 'Blue Alliance'],
+                'Probability': [red_probability, blue_probability],
+                'Color': ['red', 'blue']
+            })
+            
+            prob_chart = alt.Chart(prob_data).mark_bar().encode(
+                x=alt.X('Probability:Q', title='Win Probability (%)', scale=alt.Scale(domain=[0, 100])),
+                y=alt.Y('Alliance:N', title=''),
+                color=alt.Color('Color:N', scale=alt.Scale(domain=['red', 'blue'], range=['#ff4444', '#4444ff']), legend=None),
+                tooltip=['Alliance', alt.Tooltip('Probability:Q', format='.1f')]
+            ).properties(
+                width=600,
+                height=200
+            )
+            
+            st.altair_chart(prob_chart, use_container_width=True)
+            
+            # Display probabilities as metrics
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("🔴 Red Win Probability", f"{red_probability:.1f}%")
+            with col2:
+                st.metric("🔵 Blue Win Probability", f"{blue_probability:.1f}%")
+        
+        elif len(red_alliance) > 0 or len(blue_alliance) > 0:
+            st.info("Please select exactly 3 teams for both alliances to see predictions.")
+    
+    def raw_data_tab(self):
+        """Raw Data tab implementation"""
+        st.header("📄 Raw Data")
+        st.markdown("View and download all scouting data from the database.")
+        
+        # Load raw data
+        df = self.load_raw_data()
+        
+        if df.empty:
+            st.warning("No scouting data available. Please scan some QR codes first!")
+            st.info("To get started, run `python3 scanner.py` and scan some scouting data QR codes.")
+            return
+        
+        # Display metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Records", len(df))
+        with col2:
+            st.metric("Total Teams", df['team_number'].nunique())
+        with col3:
+            st.metric("Total Matches", df['match_number'].nunique())
+        
+        st.markdown("---")
+        
+        # Download CSV button
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="📥 Download CSV",
+            data=csv,
+            file_name="scouting_data_export.csv",
+            mime="text/csv",
+            help="Download all scouting data as a CSV file"
+        )
+        
+        st.markdown("---")
+        
+        # Display dataframe
+        st.subheader("📊 Sortable Data Table")
+        st.markdown("Click on column headers to sort the data.")
+        
+        # Use st.dataframe for interactive sorting
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "id": st.column_config.NumberColumn("ID", help="Database record ID"),
+                "timestamp": st.column_config.TextColumn("Timestamp"),
+                "match_number": st.column_config.NumberColumn("Match #"),
+                "team_number": st.column_config.NumberColumn("Team #"),
+                "alliance": st.column_config.TextColumn("Alliance"),
+                "scouter_name": st.column_config.TextColumn("Scouter"),
+                "auto_balls_scored_upper": st.column_config.NumberColumn("Auto Upper"),
+                "auto_balls_scored_lower": st.column_config.NumberColumn("Auto Lower"),
+                "auto_taxi": st.column_config.NumberColumn("Auto Taxi"),
+                "teleop_balls_scored_upper": st.column_config.NumberColumn("Teleop Upper"),
+                "teleop_balls_scored_lower": st.column_config.NumberColumn("Teleop Lower"),
+                "teleop_balls_missed": st.column_config.NumberColumn("Teleop Missed"),
+                "climb_level": st.column_config.TextColumn("Climb Level"),
+                "climb_time": st.column_config.NumberColumn("Climb Time"),
+                "defense_rating": st.column_config.TextColumn("Defense"),
+                "driver_skill": st.column_config.TextColumn("Driver Skill"),
+                "penalties": st.column_config.NumberColumn("Penalties"),
+                "broke_down": st.column_config.NumberColumn("Broke Down"),
+                "notes": st.column_config.TextColumn("Notes"),
+                "scanned_at": st.column_config.TextColumn("Scanned At")
+            }
+        )
 
 
 def main():
@@ -253,10 +644,24 @@ def main():
     dashboard = ScoutingDashboard()
     
     # Create tabs
-    tab1 = st.tabs(["Pick List Formulation"])[0]
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "Pick List Formulation",
+        "Team Analysis",
+        "Match Predictor",
+        "Raw Data"
+    ])
     
     with tab1:
         dashboard.pick_list_formulation_tab()
+    
+    with tab2:
+        dashboard.team_analysis_tab()
+    
+    with tab3:
+        dashboard.match_predictor_tab()
+    
+    with tab4:
+        dashboard.raw_data_tab()
 
 
 if __name__ == '__main__':
