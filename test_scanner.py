@@ -184,7 +184,8 @@ def cleanup():
     try:
         os.remove('test_scouting_data.db')
         print("\n✓ Test database cleaned up")
-    except:
+    except (OSError, FileNotFoundError) as e:
+        # Silently ignore if file doesn't exist or can't be removed
         pass
 
 
