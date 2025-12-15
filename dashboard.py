@@ -15,6 +15,9 @@ from plotly.subplots import make_subplots
 # Database connection
 DB_PATH = 'scouting_data.db'
 
+# Constants
+CLIMB_LEVELS = ('Low', 'Mid', 'High', 'Traversal')
+
 
 @st.cache_data
 def get_all_data():
@@ -52,13 +55,13 @@ def get_team_stats(team_number):
             (teleop_balls_scored_upper + teleop_balls_scored_lower) as teleop_score,
             climb_level,
             CASE 
-                WHEN climb_level IN ('Low', 'Mid', 'High', 'Traversal') THEN 1 
+                WHEN climb_level IN {climb_levels} THEN 1 
                 ELSE 0 
             END as climbed
         FROM scouting_data 
         WHERE team_number = ?
         ORDER BY match_number
-    """
+    """.format(climb_levels=CLIMB_LEVELS)
     df = pd.read_sql_query(query, conn, params=(team_number,))
     conn.close()
     return df
@@ -95,12 +98,12 @@ def get_team_averages(team_number):
             AVG(auto_balls_scored_upper + auto_balls_scored_lower) as avg_auto,
             AVG(teleop_balls_scored_upper + teleop_balls_scored_lower) as avg_teleop,
             AVG(CASE 
-                WHEN climb_level IN ('Low', 'Mid', 'High', 'Traversal') THEN 1.0 
+                WHEN climb_level IN {climb_levels} THEN 1.0 
                 ELSE 0.0 
             END) * 100 as climb_pct
         FROM scouting_data 
         WHERE team_number = ?
-    """
+    """.format(climb_levels=CLIMB_LEVELS)
     df = pd.read_sql_query(query, conn, params=(team_number,))
     conn.close()
     return df.iloc[0] if not df.empty else None
