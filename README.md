@@ -306,3 +306,39 @@ Built for FRC teams to make scouting easier and more reliable.
 ---
 
 **Good luck with your scouting! 🤖**
+
+## 📊 Dashboard
+
+The dashboard provides an interactive web interface for analyzing scouting data.
+
+### Running the Dashboard
+
+```bash
+# Install dashboard dependencies
+pip install streamlit pandas plotly
+
+# Run the dashboard
+streamlit run dashboard.py
+```
+
+The dashboard will open in your web browser at `http://localhost:8501`.
+
+### Dashboard Features
+
+#### Team Analysis Tab
+- Select a team from the sidebar dropdown
+- View performance metrics: Average Auto Score, Average Teleop Score, and Climb Percentage
+- Interactive line chart showing score evolution over matches
+- Alliance distribution visualization
+
+#### Match Predictor Tab
+- Select 3 teams for Red Alliance and 3 teams for Blue Alliance
+- View predicted winner based on average performance
+- Win probability visualization
+- Detailed breakdown of each team's contribution
+
+#### Raw Data Tab
+- View and sort all scouting data
+- Download data as CSV for external analysis
+- Quick statistics overview
+
