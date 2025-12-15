@@ -31,9 +31,7 @@ def setup_test_database():
         CREATE TABLE IF NOT EXISTS scouting_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
-            match_number INTEGER NOT NULL,
             team_number INTEGER NOT NULL,
-            alliance TEXT NOT NULL CHECK(alliance IN ('Red', 'Blue')),
             scouter_name TEXT NOT NULL,
             auto_balls_scored_upper INTEGER DEFAULT 0,
             auto_balls_scored_lower INTEGER DEFAULT 0,
@@ -48,30 +46,29 @@ def setup_test_database():
             penalties INTEGER DEFAULT 0,
             broke_down INTEGER DEFAULT 0 CHECK(broke_down IN (0, 1)),
             notes TEXT,
-            scanned_at TEXT NOT NULL,
-            UNIQUE(match_number, team_number, alliance)
+            scanned_at TEXT NOT NULL
         )
     ''')
     
-    # Insert test data
+    # Insert test data (removed match_number and alliance)
     test_data = [
-        ('2025-03-15T10:00:00Z', 1, 1234, 'Red', 'Scout A', 2, 1, 1, 5, 3, 1, 'High', 25, 'Good', 'Excellent', 0, 0, 'Great auto', '2025-03-15T10:30:00Z'),
-        ('2025-03-15T10:15:00Z', 2, 1234, 'Blue', 'Scout B', 1, 2, 1, 6, 4, 2, 'Traversal', 20, 'Excellent', 'Good', 0, 0, 'Strong climb', '2025-03-15T10:45:00Z'),
-        ('2025-03-15T10:30:00Z', 3, 1234, 'Red', 'Scout C', 2, 2, 1, 7, 5, 1, 'High', 22, 'Good', 'Excellent', 0, 0, 'Consistent', '2025-03-15T11:00:00Z'),
-        ('2025-03-15T11:00:00Z', 1, 5678, 'Blue', 'Scout D', 1, 0, 0, 4, 2, 3, 'Mid', 30, 'Average', 'Average', 1, 0, 'Struggled', '2025-03-15T11:30:00Z'),
-        ('2025-03-15T11:15:00Z', 2, 5678, 'Red', 'Scout E', 1, 1, 1, 5, 3, 2, 'High', 28, 'Good', 'Good', 0, 0, 'Good defense', '2025-03-15T11:45:00Z'),
-        ('2025-03-15T11:30:00Z', 1, 9012, 'Red', 'Scout F', 3, 2, 1, 8, 6, 0, 'Traversal', 18, 'Excellent', 'Excellent', 0, 0, 'Top performer', '2025-03-15T12:00:00Z'),
-        ('2025-03-15T11:45:00Z', 2, 9012, 'Blue', 'Scout G', 2, 3, 1, 9, 7, 1, 'Traversal', 19, 'Excellent', 'Excellent', 0, 0, 'Excellent all around', '2025-03-15T12:15:00Z'),
+        ('2025-03-15T10:00:00Z', 1234, 'Scout A', 2, 1, 1, 5, 3, 1, 'High', 25, 'Good', 'Excellent', 0, 0, 'Great auto', '2025-03-15T10:30:00Z'),
+        ('2025-03-15T10:15:00Z', 1234, 'Scout B', 1, 2, 1, 6, 4, 2, 'Traversal', 20, 'Excellent', 'Good', 0, 0, 'Strong climb', '2025-03-15T10:45:00Z'),
+        ('2025-03-15T10:30:00Z', 1234, 'Scout C', 2, 2, 1, 7, 5, 1, 'High', 22, 'Good', 'Excellent', 0, 0, 'Consistent', '2025-03-15T11:00:00Z'),
+        ('2025-03-15T11:00:00Z', 5678, 'Scout D', 1, 0, 0, 4, 2, 3, 'Mid', 30, 'Average', 'Average', 1, 0, 'Struggled', '2025-03-15T11:30:00Z'),
+        ('2025-03-15T11:15:00Z', 5678, 'Scout E', 1, 1, 1, 5, 3, 2, 'High', 28, 'Good', 'Good', 0, 0, 'Good defense', '2025-03-15T11:45:00Z'),
+        ('2025-03-15T11:30:00Z', 9012, 'Scout F', 3, 2, 1, 8, 6, 0, 'Traversal', 18, 'Excellent', 'Excellent', 0, 0, 'Top performer', '2025-03-15T12:00:00Z'),
+        ('2025-03-15T11:45:00Z', 9012, 'Scout G', 2, 3, 1, 9, 7, 1, 'Traversal', 19, 'Excellent', 'Excellent', 0, 0, 'Excellent all around', '2025-03-15T12:15:00Z'),
     ]
     
     cursor.executemany('''
         INSERT INTO scouting_data (
-            timestamp, match_number, team_number, alliance, scouter_name,
+            timestamp, team_number, scouter_name,
             auto_balls_scored_upper, auto_balls_scored_lower, auto_taxi,
             teleop_balls_scored_upper, teleop_balls_scored_lower, teleop_balls_missed,
             climb_level, climb_time, defense_rating, driver_skill,
             penalties, broke_down, notes, scanned_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', test_data)
     
     conn.commit()
@@ -111,9 +108,8 @@ def test_load_raw_data():
     
     assert not df.empty, "Raw data should not be empty"
     assert len(df) == 7, f"Expected 7 records, got {len(df)}"
-    assert 'match_number' in df.columns, "match_number column should exist"
     assert 'team_number' in df.columns, "team_number column should exist"
-    assert 'alliance' in df.columns, "alliance column should exist"
+    assert 'scouter_name' in df.columns, "scouter_name column should exist"
     
     print("✓ load_raw_data works correctly")
     
@@ -122,7 +118,7 @@ def test_load_raw_data():
 
 
 def test_load_team_match_data():
-    """Test loading team-specific match data"""
+    """Test loading team-specific entry data"""
     print("\nTesting load_team_match_data...")
     db_path = setup_test_database()
     dashboard = ScoutingDashboard(db_path)
@@ -130,23 +126,23 @@ def test_load_team_match_data():
     # Test for team 1234
     df = dashboard.load_team_match_data(1234)
     
-    assert not df.empty, "Team match data should not be empty"
-    assert len(df) == 3, f"Expected 3 matches for team 1234, got {len(df)}"
-    assert 'match_number' in df.columns, "match_number column should exist"
+    assert not df.empty, "Team entry data should not be empty"
+    assert len(df) == 3, f"Expected 3 entries for team 1234, got {len(df)}"
+    assert 'id' in df.columns, "id column should exist"
     assert 'auto_score' in df.columns, "auto_score column should exist"
     assert 'teleop_score' in df.columns, "teleop_score column should exist"
     assert 'climbed' in df.columns, "climbed column should exist"
     
-    # Verify calculated columns - get first match data from our test set
-    first_match = df.iloc[0]
+    # Verify calculated columns - get first entry data from our test set
+    first_entry = df.iloc[0]
     # From test data: auto_balls_scored_upper=2, auto_balls_scored_lower=1
     expected_auto_score = 3
     # From test data: teleop_balls_scored_upper=5, teleop_balls_scored_lower=3
     expected_teleop_score = 8
     
-    assert first_match['auto_score'] == expected_auto_score, f"Auto score should be {expected_auto_score}"
-    assert first_match['teleop_score'] == expected_teleop_score, f"Teleop score should be {expected_teleop_score}"
-    assert first_match['climbed'] == 1, "Should have climbed"
+    assert first_entry['auto_score'] == expected_auto_score, f"Auto score should be {expected_auto_score}"
+    assert first_entry['teleop_score'] == expected_teleop_score, f"Teleop score should be {expected_teleop_score}"
+    assert first_entry['climbed'] == 1, "Should have climbed"
     
     print("✓ load_team_match_data works correctly")
     
