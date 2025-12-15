@@ -76,10 +76,7 @@ class ScoutingDashboard:
                 (auto_balls_scored_upper + auto_balls_scored_lower) as auto_score,
                 (teleop_balls_scored_upper + teleop_balls_scored_lower) as teleop_score,
                 CASE 
-                    WHEN climb_level = 'Traversal' THEN 1
-                    WHEN climb_level = 'High' THEN 1
-                    WHEN climb_level = 'Mid' THEN 1
-                    WHEN climb_level = 'Low' THEN 1
+                    WHEN climb_level IN ('Traversal', 'High', 'Mid', 'Low') THEN 1
                     ELSE 0
                 END as climbed
             FROM scouting_data
@@ -505,12 +502,13 @@ class ScoutingDashboard:
             st.subheader("🏆 Prediction Results")
             
             total_score = red_total + blue_total
+            EQUAL_PROBABILITY = 50.0
             if total_score > 0:
                 red_probability = (red_total / total_score) * 100
                 blue_probability = (blue_total / total_score) * 100
             else:
-                red_probability = 50
-                blue_probability = 50
+                red_probability = EQUAL_PROBABILITY
+                blue_probability = EQUAL_PROBABILITY
             
             if red_total > blue_total:
                 winner = "Red Alliance"

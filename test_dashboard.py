@@ -137,10 +137,15 @@ def test_load_team_match_data():
     assert 'teleop_score' in df.columns, "teleop_score column should exist"
     assert 'climbed' in df.columns, "climbed column should exist"
     
-    # Verify calculated columns
+    # Verify calculated columns - get first match data from our test set
     first_match = df.iloc[0]
-    assert first_match['auto_score'] == 3, "Auto score should be 3 (2+1)"
-    assert first_match['teleop_score'] == 8, "Teleop score should be 8 (5+3)"
+    # From test data: auto_balls_scored_upper=2, auto_balls_scored_lower=1
+    expected_auto_score = 3
+    # From test data: teleop_balls_scored_upper=5, teleop_balls_scored_lower=3
+    expected_teleop_score = 8
+    
+    assert first_match['auto_score'] == expected_auto_score, f"Auto score should be {expected_auto_score}"
+    assert first_match['teleop_score'] == expected_teleop_score, f"Teleop score should be {expected_teleop_score}"
     assert first_match['climbed'] == 1, "Should have climbed"
     
     print("✓ load_team_match_data works correctly")
