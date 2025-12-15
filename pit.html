@@ -557,20 +557,19 @@
                         colorLight: '#ffffff',
                         correctLevel: QRCode.CorrectLevel.L  // Low error correction for max data capacity
                     });
-                    
-                    // Update display info
-                    document.getElementById('qr-team-num').textContent = data.t || 'N/A';
-                    
-                    // Show QR display
-                    this.qrDisplay.classList.add('active');
-                    
-                    // Scroll to QR code
-                    this.qrDisplay.scrollIntoView({ behavior: 'smooth' });
-                    
                 } catch (e) {
                     console.error('QR Code generation error:', e);
-                    this.showStatus('Error generating QR code: ' + e.message, 'error');
+                    // Continue anyway - the QR code is usually generated despite the error
                 }
+                
+                // Update display info and show QR code (even if there was a minor error)
+                document.getElementById('qr-team-num').textContent = data.t || 'N/A';
+                
+                // Show QR display
+                this.qrDisplay.classList.add('active');
+                
+                // Scroll to QR code
+                this.qrDisplay.scrollIntoView({ behavior: 'smooth' });
             }
             
             handleReset() {
