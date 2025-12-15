@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Frontend - Nginx serving static files
+  frontend:
+    image: nginx:alpine
+    container_name: frc-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./pit.html:/usr/share/nginx/html/pit.html:ro
+      - ./scanner.html:/usr/share/nginx/html/scanner.html:ro
+      - ./app.js:/usr/share/nginx/html/app.js:ro
+      - ./config.js:/usr/share/nginx/html/config.js:ro
+      - ./qrcode.min.js:/usr/share/nginx/html/qrcode.min.js:ro
+      - ./manifest.json:/usr/share/nginx/html/manifest.json:ro
+    networks:
+      - frc-network
+    restart: unless-stopped
+
+  # Backend - FastAPI
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: frc-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - scout-db:/data
+    environment:
+      - DB_PATH=/data/scouting_data.db
+    networks:
+      - frc-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Dashboard - Streamlit
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: frc-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - scout-db:/data
+    environment:
+      - DB_PATH=/data/scouting_data.db
+    networks:
+      - frc-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  scout-db:
+    name: scout-db
+
+networks:
+  frc-network:
+    name: frc-network
+    driver: bridge

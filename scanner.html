@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>FRC QR Scanner - Web</title>
+    
+    <style>
+        /* Dark Mode High Contrast Theme */
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --accent-success: #4CAF50;
+            --accent-danger: #f44336;
+            --accent-info: #2196F3;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* Success Flash Overlay */
+        #flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--accent-success);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+        
+        #flash-overlay.active {
+            opacity: 0.8;
+        }
+        
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            padding: 1rem;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        /* Scanner Container */
+        #scanner-container {
+            position: fixed;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+        }
+        
+        #reader {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Status Bar */
+        #status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            padding: 1.5rem;
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        #status-message {
+            font-size: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            min-height: 24px;
+        }
+        
+        .status-ready {
+            color: var(--accent-info);
+        }
+        
+        .status-success {
+            color: var(--accent-success);
+            font-weight: 600;
+        }
+        
+        .status-error {
+            color: var(--accent-danger);
+            font-weight: 600;
+        }
+        
+        /* Stats Display */
+        #stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #555;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-success);
+            margin-top: 0.25rem;
+        }
+        
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent-success);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        #toast.show {
+            opacity: 1;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            
+            #scanner-container {
+                top: 70px;
+                bottom: 180px;
+            }
+            
+            .stat-value {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash Overlay -->
+    <div id="flash-overlay"></div>
+    
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+    
+    <!-- Header -->
+    <header>
+        <h1>🤖 FRC QR Scanner</h1>
+        <p class="subtitle">Web-Based QR Code Scanner</p>
+    </header>
+    
+    <!-- Scanner Container -->
+    <div id="scanner-container">
+        <div id="reader"></div>
+    </div>
+    
+    <!-- Status Bar -->
+    <div id="status-bar">
+        <div id="status-message" class="status-ready">
+            Initializing camera...
+        </div>
+        
+        <div id="stats">
+            <div class="stat-item">
+                <div class="stat-label">Scanned</div>
+                <div class="stat-value" id="scan-count">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Success</div>
+                <div class="stat-value" id="success-count">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Errors</div>
+                <div class="stat-value" id="error-count" style="color: var(--accent-danger);">0</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- html5-qrcode Library -->
+    <!-- NOTE: Using CDN for simplicity. For production, consider:
+         1. Downloading and hosting locally, OR
+         2. Adding integrity hash: integrity="sha384-..." crossorigin="anonymous" -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <script>
+        class QRScanner {
+            constructor() {
+                this.html5QrcodeScanner = null;
+                this.lastQRCode = null;
+                this.lastScanTime = 0;
+                this.scanCount = 0;
+                this.successCount = 0;
+                this.errorCount = 0;
+                this.isProcessing = false;
+                
+                // API endpoint - use relative path for nginx proxy
+                this.apiEndpoint = '/api/submit';
+                
+                this.init();
+            }
+            
+            init() {
+                this.startScanner();
+            }
+            
+            startScanner() {
+                this.html5QrcodeScanner = new Html5QrcodeScanner(
+                    "reader",
+                    {
+                        fps: 10,
+                        qrbox: { width: 300, height: 300 },
+                        aspectRatio: 1.0,
+                        rememberLastUsedCamera: true,
+                        showTorchButtonIfSupported: true,
+                        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+                    },
+                    /* verbose= */ false
+                );
+                
+                this.html5QrcodeScanner.render(
+                    (decodedText, decodedResult) => this.onScanSuccess(decodedText, decodedResult),
+                    (error) => this.onScanFailure(error)
+                );
+                
+                this.updateStatus('Ready to scan QR codes...', 'ready');
+            }
+            
+            async onScanSuccess(decodedText, decodedResult) {
+                // Prevent duplicate scans (debounce)
+                const now = Date.now();
+                if (this.isProcessing || 
+                    (decodedText === this.lastQRCode && now - this.lastScanTime < 3000)) {
+                    return;
+                }
+                
+                this.isProcessing = true;
+                this.lastQRCode = decodedText;
+                this.lastScanTime = now;
+                this.scanCount++;
+                this.updateStats();
+                
+                try {
+                    // Parse JSON data
+                    const data = JSON.parse(decodedText);
+                    
+                    // Flash green
+                    this.flashScreen();
+                    
+                    // Send to API
+                    await this.sendToAPI(data);
+                    
+                } catch (error) {
+                    console.error('Error processing QR code:', error);
+                    this.errorCount++;
+                    this.updateStats();
+                    this.updateStatus(`Error: ${error.message}`, 'error');
+                    
+                    // Reset after error
+                    setTimeout(() => {
+                        this.isProcessing = false;
+                        this.updateStatus('Ready to scan QR codes...', 'ready');
+                    }, 2000);
+                }
+            }
+            
+            onScanFailure(error) {
+                // Ignore scan failures (they happen constantly while searching)
+                // Only log actual errors
+                if (error && !error.includes('NotFoundException')) {
+                    console.debug('Scan error:', error);
+                }
+            }
+            
+            async sendToAPI(data) {
+                try {
+                    const response = await fetch(this.apiEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'API request failed');
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // Success!
+                    this.successCount++;
+                    this.updateStats();
+                    
+                    // Determine message based on data type
+                    let message;
+                    if (data.match_number !== undefined) {
+                        // Match data
+                        message = `✓ Match ${data.match_number}, Team ${data.team_number}`;
+                    } else if (data.t !== undefined) {
+                        // Pit data (abbreviated)
+                        message = `✓ Pit Data: Team ${data.t}`;
+                    } else {
+                        message = '✓ Data saved successfully';
+                    }
+                    
+                    this.updateStatus(message, 'success');
+                    this.showToast(message);
+                    
+                    // Resume scanning after short delay
+                    setTimeout(() => {
+                        this.isProcessing = false;
+                        this.updateStatus('Ready to scan QR codes...', 'ready');
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('API Error:', error);
+                    this.errorCount++;
+                    this.updateStats();
+                    this.updateStatus(`API Error: ${error.message}`, 'error');
+                    
+                    // Resume after error
+                    setTimeout(() => {
+                        this.isProcessing = false;
+                        this.updateStatus('Ready to scan QR codes...', 'ready');
+                    }, 3000);
+                }
+            }
+            
+            flashScreen() {
+                const overlay = document.getElementById('flash-overlay');
+                overlay.classList.add('active');
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                }, 300);
+            }
+            
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+            
+            updateStatus(message, type) {
+                const statusElement = document.getElementById('status-message');
+                statusElement.textContent = message;
+                statusElement.className = `status-${type}`;
+            }
+            
+            updateStats() {
+                document.getElementById('scan-count').textContent = this.scanCount;
+                document.getElementById('success-count').textContent = this.successCount;
+                document.getElementById('error-count').textContent = this.errorCount;
+            }
+        }
+        
+        // Initialize scanner when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new QRScanner();
+        });
+    </script>
+</body>
+</html>

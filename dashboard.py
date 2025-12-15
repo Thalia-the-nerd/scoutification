@@ -12,8 +12,10 @@ import altair as alt
 
 
 class ScoutingDashboard:
-    def __init__(self, db_path='scouting_data.db'):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        # Use environment variable for Docker deployment, fallback to local
+        import os
+        self.db_path = db_path or os.getenv('DB_PATH', 'scouting_data.db')
     
     def load_data(self):
         """Load data from SQLite database"""
