@@ -218,7 +218,7 @@
     
     <!-- Header -->
     <header>
-        <h1>🤖 FRC QR Scanner</h1>
+        <h1>FRC QR Scanner</h1>
         <p class="subtitle">Web-Based QR Code Scanner</p>
     </header>
     
@@ -367,14 +367,14 @@
                     
                     // Determine message based on data type
                     let message;
-                    if (data.match_number !== undefined) {
+                    if (data.team_number !== undefined) {
                         // Match data
-                        message = `✓ Match ${data.match_number}, Team ${data.team_number}`;
+                        message = `Success: Team ${data.team_number}`;
                     } else if (data.t !== undefined) {
                         // Pit data (abbreviated)
-                        message = `✓ Pit Data: Team ${data.t}`;
+                        message = `Success: Pit Data Team ${data.t}`;
                     } else {
-                        message = '✓ Data saved successfully';
+                        message = 'Data saved successfully';
                     }
                     
                     this.updateStatus(message, 'success');

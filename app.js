@@ -321,7 +321,6 @@ class ScoutingApp {
         }
         
         // Update display info
-        document.getElementById('qr-match-num').textContent = data.match_number || 'N/A';
         document.getElementById('qr-team-num').textContent = data.team_number || 'N/A';
         
         // Show QR display
@@ -430,9 +429,7 @@ class ScoutingApp {
             const timestamp = new Date(entry.timestamp).toLocaleString();
             item.innerHTML = `
                 <strong>#${index + 1}</strong> - 
-                Match <span>${entry.match_number || 'N/A'}</span> | 
                 Team <span>${entry.team_number || 'N/A'}</span> | 
-                Alliance <span>${entry.alliance || 'N/A'}</span> | 
                 <small>${timestamp}</small>
             `;
             
