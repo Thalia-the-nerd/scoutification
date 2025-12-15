@@ -25,7 +25,9 @@ app.add_middleware(
 )
 
 # Database configuration
-DB_PATH = os.getenv('DB_PATH', '/data/scouting_data.db')
+def get_db_path():
+    """Get database path from environment or default"""
+    return os.getenv('DB_PATH', '/data/scouting_data.db')
 
 
 class ScoutingData(BaseModel):
@@ -107,7 +109,8 @@ class PitData(BaseModel):
 
 def init_database():
     """Initialize SQLite database with schema"""
-    conn = sqlite3.connect(DB_PATH)
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
     # Create match scouting table
@@ -158,10 +161,16 @@ def init_database():
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
-    # Ensure data directory exists
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    db_path = get_db_path()
+    # Ensure data directory exists (skip if path is in /tmp or current dir)
+    db_dir = os.path.dirname(db_path)
+    if db_dir and db_dir not in ['', '.', '/tmp']:
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+        except PermissionError:
+            print(f"Warning: Cannot create directory {db_dir}, using database path as-is")
     init_database()
-    print(f"✓ Database initialized: {DB_PATH}")
+    print(f"✓ Database initialized: {db_path}")
 
 
 @app.get("/")
@@ -211,6 +220,7 @@ async def submit_data(data: dict[str, Any]):
 
 def save_match_data(data: ScoutingData) -> dict:
     """Save match scouting data to database"""
+    db_path = get_db_path()
     scanned_at = datetime.now().isoformat()
     
     # Prepare record
@@ -237,7 +247,7 @@ def save_match_data(data: ScoutingData) -> dict:
     }
     
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(get_db_path())
         cursor = conn.cursor()
         
         # Use INSERT OR REPLACE to handle duplicates
@@ -294,7 +304,7 @@ def save_pit_data(data: PitData) -> dict:
     }
     
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(get_db_path())
         cursor = conn.cursor()
         
         # Use INSERT OR REPLACE to handle duplicates
@@ -325,7 +335,7 @@ def save_pit_data(data: PitData) -> dict:
 async def get_stats():
     """Get database statistics"""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(get_db_path())
         cursor = conn.cursor()
         
         # Get match data count
