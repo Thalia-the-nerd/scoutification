@@ -384,7 +384,7 @@ class ScoutingDashboard:
             # Legend
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.markdown("**Auto Score**")
+                st.markdown("**Auto Score** (Blue)")
             with col2:
                 st.markdown("**Teleop Score** (Green)")
             with col3:

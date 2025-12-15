@@ -50,7 +50,7 @@ def setup_test_database():
         )
     ''')
     
-    # Insert test data (removed match_number and alliance)
+    # Insert test data (removed match_number and alliance fields)
     test_data = [
         ('2025-03-15T10:00:00Z', 1234, 'Scout A', 2, 1, 1, 5, 3, 1, 'High', 25, 'Good', 'Excellent', 0, 0, 'Great auto', '2025-03-15T10:30:00Z'),
         ('2025-03-15T10:15:00Z', 1234, 'Scout B', 1, 2, 1, 6, 4, 2, 'Traversal', 20, 'Excellent', 'Good', 0, 0, 'Strong climb', '2025-03-15T10:45:00Z'),
@@ -118,7 +118,7 @@ def test_load_raw_data():
 
 
 def test_load_team_match_data():
-    """Test loading team-specific entry data"""
+    """Test loading team-specific match data (entries ordered by ID)"""
     print("\nTesting load_team_match_data...")
     db_path = setup_test_database()
     dashboard = ScoutingDashboard(db_path)
