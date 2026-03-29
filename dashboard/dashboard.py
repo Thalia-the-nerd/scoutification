@@ -441,7 +441,9 @@ class ScoutingDashboard:
                         blue_teams = [int(t.replace('frc','')) for t in data['alliances']['blue']['team_keys']]
                         st.success(f"✓ Synced Match {match_num} from TBA")
                     elif resp.status_code == 401:
-                        st.error("TBA Error 401: Unauthorized. Please provide a valid **TBA API Key** in the input above. (Get one at thebluealliance.com/account)")
+                        st.error("TBA Error 401: Unauthorized. Your API Key is invalid or missing.")
+                    elif resp.status_code == 404:
+                        st.error(f"TBA Error 404: Match {match_num} not found. The schedule for {tba_key} might not be published yet!")
                     else:
                         st.warning(f"TBA sync failed (Status {resp.status_code}).")
                 except Exception as e:
