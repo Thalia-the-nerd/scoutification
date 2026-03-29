@@ -417,7 +417,7 @@ class ScoutingDashboard:
         
         c1, c2, c3 = st.columns(3)
         DEFAULT_API_KEY = "OZRrMZT1z5Qs0G2vPPZKCNWFC1QZHrOCYRwq2Fr3cRFc41gIfbgqh0YlCaJSdrRF"
-        tba_key = c1.text_input("TBA Event Key", value="2026flsh", help="Find your event key on bluealliance.com (e.g., 2026flsh)")
+        tba_key = c1.text_input("TBA Event Key", value="2026flwp", help="Find your event key on bluealliance.com (e.g., 2026flwp)")
         match_num = c2.number_input("Qual Match Number", min_value=1, value=1)
         api_key = c3.text_input("TBA API Key", type="password", value=DEFAULT_API_KEY, help="Required for live TBA sync. Get one at thebluealliance.com/account")
         
