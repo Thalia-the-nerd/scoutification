@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="FRC Scouting System - Offline PWA">
     <meta name="theme-color" content="#1a1a1a">
     <title>FRC Scouting System</title>
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
+
     <style>
         /* Dark Mode High Contrast Theme */
         :root {
@@ -24,13 +25,13 @@
             --border-color: #444;
             --shadow: rgba(255, 183, 178, 0.3);
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--bg-primary);
@@ -40,20 +41,20 @@
             max-width: 800px;
             margin: 0 auto;
         }
-        
+
         header {
             text-align: center;
             padding: 1.5rem 0;
             border-bottom: 2px solid var(--accent-primary);
             margin-bottom: 2rem;
         }
-        
+
         h1 {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
         }
-        
+
         h2 {
             font-size: 1.4rem;
             margin: 1.5rem 0 1rem 0;
@@ -61,12 +62,12 @@
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 0.5rem;
         }
-        
+
         .subtitle {
             color: var(--text-secondary);
             font-size: 0.9rem;
         }
-        
+
         .form-section {
             background-color: var(--bg-secondary);
             border-radius: 8px;
@@ -74,19 +75,22 @@
             margin-bottom: 1.5rem;
             border: 1px solid var(--border-color);
         }
-        
+
         .form-group {
             margin-bottom: 1.5rem;
         }
-        
+
         label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 1rem;
+            font-size: 0.95rem;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.4;
         }
-        
+
         input[type="text"],
         input[type="number"],
         select,
@@ -100,20 +104,20 @@
             font-size: 1rem;
             transition: border-color 0.3s;
         }
-        
+
         input:focus,
         select:focus,
         textarea:focus {
             outline: none;
             border-color: var(--accent-secondary);
         }
-        
+
         textarea {
             min-height: 100px;
             resize: vertical;
             font-family: inherit;
         }
-        
+
         /* Tabs */
         .tab-container {
             display: flex;
@@ -121,36 +125,41 @@
             margin-bottom: 1.5rem;
             border-bottom: 2px solid var(--border-color);
         }
-        
+
         .tab-btn {
             flex: 1;
-            padding: 1rem;
+            min-width: 130px;
+            padding: 0.75rem 0.5rem;
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
+            white-space: normal;
+            word-break: break-word;
+            text-align: center;
+            line-height: 1.3;
         }
-        
+
         .tab-btn:hover {
             color: var(--text-primary);
             background-color: var(--bg-secondary);
         }
-        
+
         .tab-btn.active {
             color: var(--accent-secondary);
             border-bottom: 3px solid var(--accent-secondary);
         }
-        
+
         .category-note {
             color: var(--accent-warning, #FF9800);
             font-size: 0.85rem;
             margin-bottom: 1rem;
             font-style: italic;
         }
-        
+
         /* Counter Controls */
         .counter-control {
             display: flex;
@@ -161,7 +170,7 @@
             border-radius: 4px;
             border: 2px solid var(--border-color);
         }
-        
+
         .counter-btn {
             width: 60px;
             height: 60px;
@@ -175,15 +184,15 @@
             transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
-        
+
         .counter-btn:active {
             transform: scale(0.95);
         }
-        
+
         .counter-btn.minus {
             background-color: var(--accent-danger);
         }
-        
+
         .counter-value {
             flex: 1;
             text-align: center;
@@ -191,7 +200,7 @@
             font-weight: 700;
             color: var(--text-primary);
         }
-        
+
         /* Checkbox Styling */
         .checkbox-wrapper {
             display: flex;
@@ -202,14 +211,14 @@
             border-radius: 4px;
             cursor: pointer;
         }
-        
+
         input[type="checkbox"] {
             width: 30px;
             height: 30px;
             cursor: pointer;
             accent-color: var(--accent-primary);
         }
-        
+
         /* Buttons */
         .btn-group {
             display: flex;
@@ -217,7 +226,7 @@
             gap: 1rem;
             margin-top: 2rem;
         }
-        
+
         .btn {
             flex: 1;
             padding: 1rem 2rem;
@@ -230,28 +239,28 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
+
         .btn-primary {
             background-color: var(--accent-primary);
             color: var(--text-primary);
         }
-        
+
         .btn-secondary {
             background-color: var(--bg-tertiary);
             color: var(--text-primary);
             border: 2px solid var(--border-color);
         }
-        
+
         .btn:hover {
             opacity: 0.9;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px var(--shadow);
         }
-        
+
         .btn:active {
             transform: translateY(0);
         }
-        
+
         /* QR Code Display */
         #qr-display {
             display: none;
@@ -262,11 +271,11 @@
             border: 2px solid var(--accent-primary);
             margin-top: 2rem;
         }
-        
+
         #qr-display.active {
             display: block;
         }
-        
+
         #qrcode {
             margin: 1rem auto;
             padding: 1rem;
@@ -274,7 +283,7 @@
             display: inline-block;
             border-radius: 8px;
         }
-        
+
         /* Status Messages */
         .status-message {
             padding: 1rem;
@@ -283,24 +292,24 @@
             text-align: center;
             font-weight: 600;
         }
-        
+
         .status-success {
             background-color: rgba(76, 175, 80, 0.2);
             border: 2px solid var(--accent-primary);
             color: var(--accent-primary);
         }
-        
+
         .status-error {
             background-color: rgba(244, 67, 54, 0.2);
             border: 2px solid var(--accent-danger);
             color: var(--accent-danger);
         }
-        
+
         /* History Section */
         #history-section {
             margin-top: 2rem;
         }
-        
+
         .history-item {
             background-color: var(--bg-secondary);
             padding: 1rem;
@@ -309,41 +318,41 @@
             margin-bottom: 0.5rem;
             font-size: 0.9rem;
         }
-        
+
         .history-item span {
             color: var(--accent-secondary);
             font-weight: 600;
         }
-        
+
         /* Responsive Design */
         @media (max-width: 600px) {
             body {
                 padding: 0.5rem;
             }
-            
+
             h1 {
                 font-size: 1.5rem;
             }
-            
+
             .form-section {
                 padding: 1rem;
             }
-            
+
             .counter-btn {
                 width: 50px;
                 height: 50px;
                 font-size: 1.5rem;
             }
-            
+
             .counter-value {
                 font-size: 1.5rem;
             }
-            
+
             .btn-group {
                 flex-direction: column;
             }
         }
-    
+
         /* --- OLD SCOUTIFICATION LOOK & FEEL OVERRIDES --- */
         .form-section {
             padding: 1rem !important;
@@ -353,6 +362,7 @@
             gap: 1rem !important;
             align-items: start !important;
         }
+
         .form-section h2 {
             grid-column: 1 / -1 !important;
             margin-top: 0 !important;
@@ -361,9 +371,11 @@
             border-bottom: 1px solid var(--border-color) !important;
             padding-bottom: 0.25rem !important;
         }
+
         .form-group {
             margin-bottom: 0 !important;
         }
+
         label {
             margin-bottom: 0.25rem !important;
             font-size: 0.9rem !important;
@@ -371,20 +383,27 @@
             overflow: hidden !important;
             text-overflow: ellipsis !important;
         }
-        input, select, textarea {
+
+        input,
+        select,
+        textarea {
             padding: 0.5rem !important;
             font-size: 0.9rem !important;
         }
+
         .form-group:has(textarea) {
             grid-column: 1 / -1 !important;
         }
+
         textarea {
             min-height: 60px !important;
         }
+
         .counter-controls {
             gap: 0.5rem !important;
             padding: 0.25rem !important;
         }
+
         .counter-btn {
             width: 36px !important;
             height: 36px !important;
@@ -394,76 +413,86 @@
             align-items: center !important;
             justify-content: center !important;
         }
+
         .counter-val {
             font-size: 1.2rem !important;
         }
+
         .checkbox-wrapper {
             gap: 0.5rem !important;
             padding: 0.5rem !important;
             height: 42px !important;
         }
+
         .checkbox-wrapper input[type="checkbox"] {
             width: 20px !important;
             height: 20px !important;
         }
+
         .checkbox-wrapper label {
             margin-bottom: 0 !important;
             font-size: 0.9rem !important;
             white-space: normal !important;
         }
+
         .button-group {
             margin-top: 1.5rem !important;
         }
+
         .btn {
             padding: 0.75rem 1.5rem !important;
             font-size: 1rem !important;
         }
     </style>
 </head>
+
 <body>
     <header>
         <h1> FRC Scouting System</h1>
         <p class="subtitle">Offline Progressive Web App</p>
     </header>
-    
+
     <main>
         <div id="status-container"></div>
-        
+
         <form id="scouting-form">
             <!-- Form fields will be dynamically generated here -->
         </form>
-        
+
         <p style="text-align: center; margin-top: 1rem; color: var(--accent-warning); font-weight: bold;">
-            📸 Reminder: Take a manual photo with your camera app if you want to include photos, then upload via WiFi later!
+            📸 Reminder: Take a manual photo with your camera app if you want to include photos, then upload via WiFi
+            later!
         </p>
-        
+
         <div class="btn-group">
             <button type="button" class="btn btn-secondary" id="reset-btn">Reset Form</button>
             <button type="button" class="btn btn-primary" id="submit-btn">Generate QR Code</button>
         </div>
-        
+
         <div id="qr-display">
             <h2>Scan This QR Code</h2>
             <div id="qrcode"></div>
             <p class="subtitle">Match #<span id="qr-match-num"></span> - Team #<span id="qr-team-num"></span></p>
             <button type="button" class="btn btn-primary" id="new-entry-btn">New Entry</button>
         </div>
-        
+
         <div id="history-section">
             <h2>Recent Entries (Stored Locally)</h2>
             <div id="history-container">
                 <p class="subtitle">No entries yet.</p>
             </div>
         </div>
-        
-        <footer style="text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); color: var(--text-secondary);">
+
+        <footer
+            style="text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); color: var(--text-secondary);">
             <p>Made by Thalia</p>
         </footer>
     </main>
-    
+
     <!-- Scripts -->
     <script src="qrcode.min.js"></script>
-    <script src="config.js?v=2026d"></script>
-    <script src="app.js?v=2026d"></script>
+    <script src="config.js?v=2026e"></script>
+    <script src="app.js?v=2026e"></script>
 </body>
+
 </html>
