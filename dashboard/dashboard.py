@@ -204,7 +204,28 @@ class ScoutingDashboard:
         stats = df[df['team_number'] == team].iloc[0]
 
         st.subheader(f"Team {int(team)}")
-        st.markdown(f"**Matches scouted:** {int(stats['Matches_Played'])}")
+        
+        # Pull team metadata from Statbotics v3
+        team_name, location, epa, world_rank = "Unknown Team", "Unknown Location", "N/A", "N/A"
+        try:
+            res = requests.get(f"https://api.statbotics.io/v3/team_year/{team}/2026", timeout=2)
+            if res.status_code == 200:
+                data = res.json()
+                team_name = data.get('name', 'Unknown Team')
+                location = f"{data.get('state', '')}, {data.get('country', '')}".strip(', ')
+                
+                epa_val = data.get('epa', {}).get('total_points', {}).get('mean', 0)
+                if epa_val > 0:
+                    epa = round(epa_val, 1)
+                
+                rank_val = data.get('epa', {}).get('ranks', {}).get('total', {}).get('rank', 0)
+                if rank_val > 0:
+                    world_rank = f"#{rank_val}"
+        except Exception:
+            pass
+            
+        st.markdown(f"**{team_name}** &nbsp;|&nbsp; 🌍 {location} &nbsp;|&nbsp; 🛡️ **2026 EPA:** {epa} &nbsp;|&nbsp; 🏆 **World Rank:** {world_rank}")
+        st.markdown(f"**Matches manually scouted:** {int(stats['Matches_Played'])}")
         st.markdown("---")
 
         c1, c2, c3, c4 = st.columns(4)
