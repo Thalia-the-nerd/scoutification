@@ -187,12 +187,15 @@ async def root():
 @app.post("/api/submit")
 async def submit_data(data: dict[str, Any]):
     try:
-        is_pre_scout = 'pre_team_number' in data
+        print(f"DEBUG: Received submission data: {data}")
+        is_pre_scout = 'pre_team_number' in data and data['pre_team_number']
         if is_pre_scout:
+            print(f"DEBUG: Processing as Pre-Scouting (Pit) data")
             pit = PreScoutingData(**data)
             result = save_pre_scouting_data(pit)
             return {"status": "success", "message": f"Pre-scouting data saved for Team {pit.pre_team_number}", "data": result}
         else:
+            print(f"DEBUG: Processing as Match Scouting data")
             match = ScoutingData(**data)
             result = save_match_data(match)
             return {"status": "success", "message": f"Match {match.match_number}, Team {match.team_number} saved", "data": result}
@@ -329,7 +332,7 @@ async def get_stats():
         cur = conn.cursor()
         cur.execute('SELECT COUNT(*) FROM scouting_data')
         match_count = cur.fetchone()[0]
-        cur.execute('SELECT COUNT(*) FROM pit_data')
+        cur.execute('SELECT COUNT(*) FROM pre_scouting_data')
         pit_count = cur.fetchone()[0]
         cur.execute('SELECT COUNT(DISTINCT team_number) FROM scouting_data')
         unique_teams = cur.fetchone()[0]

@@ -775,7 +775,7 @@
 
                 CONFIG.fields.forEach(field => {
                     const categoryMeta = CONFIG.categories[field.category];
-                    if (!categoryMeta || categoryMeta.tab !== activeTab) return;
+                    if (!categoryMeta) return;
 
                     if (field.type === 'counter') {
                         data[field.id] = this.counterValues[field.id] || 0;
@@ -799,7 +799,7 @@
 
                 CONFIG.fields.forEach(field => {
                     const categoryMeta = CONFIG.categories[field.category];
-                    if (!categoryMeta || categoryMeta.tab !== activeTab) return;
+                    if (!categoryMeta) return;
 
                     if (field.required) {
                         const v = data[field.id];
@@ -813,6 +813,7 @@
 
             async handleSubmit() {
                 const data = this.collectFormData();
+                console.log('Sending data:', data);
                 const errors = this.validateFormData(data);
 
                 if (errors.length > 0) {
